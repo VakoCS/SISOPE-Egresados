@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="color-scheme" content="light">
-  <title>@yield('title', 'Inicio') · Seguimiento al Egresado | UNT</title>
+  <title>@yield('title', 'Inicio') · CRM Seguimiento al Egresado | UNT</title>
+  <link rel="icon" type="image/png" href="{{ asset('img/logo-informatica.png') }}">
   <link rel="preconnect" href="https://fonts.bunny.net">
   <link href="https://fonts.bunny.net/css?family=fira-code:500,600|fira-sans:400,500,600,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('css/seguimiento-egresado.css') }}">
@@ -14,11 +15,11 @@
 <body class="sg">
 <a class="sg-skip-link" href="#contenido">Saltar al contenido</a>
 <div class="sg-shell">
-  <aside class="sg-sidebar" aria-label="Módulo Seguimiento al Egresado">
+  <aside class="sg-sidebar" aria-label="CRM Seguimiento al Egresado">
     <div class="sg-sidebar-head">
-      <a class="sg-brand" href="{{ route('seguimiento-egresado.index') }}" aria-label="Seguimiento al Egresado · Inicio">
-        <img class="sg-brand-mark" src="{{ asset('img/logo-informatica.png') }}" alt="">
-        <span class="sg-brand-copy"><strong>Seguimiento al Egresado</strong><small>Ingeniería Informática de la UNT</small></span>
+      <a class="sg-brand" href="{{ route('seguimiento-egresado.index') }}" aria-label="CRM Seguimiento al Egresado · Inicio">
+        <img class="sg-brand-mark" src="{{ asset('img/logo-informatica.png') }}" alt="Logo Informática">
+        <span class="sg-brand-copy"><strong>CRM Egresados</strong><small>Ingeniería Informática · UNT</small></span>
       </a>
       <button class="sg-menu-toggle" type="button" aria-label="Menú de navegación" aria-controls="sg-navigation" aria-expanded="false" hidden>
         @include('modules.seguimiento-egresado.partials.icon', ['name' => 'menu'])
@@ -42,10 +43,6 @@
           </a>
         @endforeach
       </div>
-      <a class="sg-module-switch" href="{{ route('dashboard') }}">
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-        <span>Cambiar de módulo</span>
-      </a>
     </nav>
     <div class="sg-sidebar-foot">
       <span class="sg-sidebar-university">Universidad Nacional de Trujillo</span>
@@ -57,11 +54,8 @@
       <div class="sg-container sg-topbar-inner">
         <nav class="sg-breadcrumb" aria-label="Ruta de navegación">
           <ol>
-            <li><a href="{{ route('dashboard') }}">Portal</a></li>
-            @if(request()->routeIs('seguimiento-egresado.index'))
-              <li><span aria-current="page">Seguimiento al Egresado</span></li>
-            @else
-              <li><a href="{{ route('seguimiento-egresado.index') }}">Seguimiento al Egresado</a></li>
+            <li><a href="{{ route('seguimiento-egresado.index') }}">CRM Egresados</a></li>
+            @if(!request()->routeIs('seguimiento-egresado.index'))
               <li><span aria-current="page">@yield('section_name', 'Vista general')</span></li>
             @endif
           </ol>
@@ -70,7 +64,7 @@
           <details class="sg-user-menu">
             <summary class="sg-user-trigger" aria-label="Cuenta de {{ auth()->user()->name }}">
               <span class="sg-avatar" aria-hidden="true">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr(auth()->user()->name, 0, 2)) }}</span>
-              <span class="sg-user-name"><strong>{{ auth()->user()->name }}</strong><small>{{ \Illuminate\Support\Str::of(auth()->user()->getRoleNames()->first() ?? 'Usuario institucional')->replace('_', ' ') }}</small></span>
+              <span class="sg-user-name"><strong>{{ auth()->user()->name }}</strong><small>{{ \Illuminate\Support\Str::of(auth()->user()->getRoleNames()->first() ?? 'Personal institucional')->replace('_', ' ') }}</small></span>
               <svg class="sg-user-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </summary>
             <div class="sg-user-panel">
@@ -84,7 +78,7 @@
       </div>
     </header>
     <main class="sg-main" id="contenido" tabindex="-1">@yield('content')</main>
-    <footer class="sg-footer"><div class="sg-container sg-footer-inner"><span>Universidad Nacional de Trujillo</span></div></footer>
+    <footer class="sg-footer"><div class="sg-container sg-footer-inner"><span>Universidad Nacional de Trujillo · Escuela de Ingeniería Informática</span></div></footer>
   </div>
 </div>
 <script>

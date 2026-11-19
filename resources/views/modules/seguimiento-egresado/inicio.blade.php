@@ -3,10 +3,10 @@
 @section('section_name', 'Inicio')
 @section('content')
 <section class="sg-heading sg-home-heading" aria-labelledby="sg-home-title" data-esquema="{{ $schema ?? 'seguimiento_egresado' }}">
-  <h1 id="sg-home-title">Seguimiento al Egresado</h1>
-  <p>Consulta expedientes, organiza campañas y revisa la formación profesional.</p>
+  <h1 id="sg-home-title">CRM · Seguimiento al Egresado</h1>
+  <p>Consulta expedientes, organiza campañas de seguimiento, encuestas y evalúa la inserción laboral y competencias de los egresados.</p>
   @guest
-    <p class="sg-help">Las opciones de Secretaría y Dirección requieren iniciar sesión en el portal. Los egresados entran con el enlace personal que recibieron de la Escuela.</p>
+    <p class="sg-help">Las opciones de gestión de Secretaría y Dirección requieren iniciar sesión en el sistema. Los egresados acceden directamente con el enlace personal que recibieron de la Escuela.</p>
   @endguest
 </section>
 @isset($avisos)

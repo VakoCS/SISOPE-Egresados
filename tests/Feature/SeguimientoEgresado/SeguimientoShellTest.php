@@ -9,7 +9,7 @@ use Tests\Support\SeguimientoEgresado\ComoPersonal;
 use Tests\Support\SeguimientoEgresado\UsaBaseDeDatos;
 use Tests\TestCase;
 
-/** Armazón del módulo dentro del portal: portada pública, páginas internas con la cuenta del portal y navegación activa. */
+/** Armazón del CRM de Seguimiento al Egresado: portada pública, páginas internas con la cuenta institucional y navegación activa. */
 class SeguimientoShellTest extends TestCase
 {
     use ComoPersonal, UsaBaseDeDatos;
@@ -33,13 +33,12 @@ class SeguimientoShellTest extends TestCase
         }
     }
 
-    public function test_la_cuenta_del_portal_ofrece_perfil_y_salir_y_el_menu_lateral_cambiar_de_modulo(): void
+    public function test_la_cuenta_ofrece_perfil_y_salir(): void
     {
         $usuario = $this->secretaria();
 
         $this->actingAs($usuario)->get(route('seguimiento-egresado.padron'))->assertOk()
             ->assertSee($usuario->name)
-            ->assertSee('Cambiar de módulo')
             ->assertSee('Mi perfil')
             ->assertSee(route('profile.edit'), false)
             ->assertSee('Cerrar sesión')
@@ -63,7 +62,7 @@ class SeguimientoShellTest extends TestCase
         );
 
         $respuesta->assertOk()
-            ->assertSee('Inicio · Seguimiento al Egresado | UNT')
+            ->assertSee('Inicio · CRM Seguimiento al Egresado | UNT')
             ->assertSee('Iniciar sesión')
             ->assertDontSee('esquema de datos');
     }
