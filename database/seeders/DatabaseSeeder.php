@@ -13,13 +13,15 @@ class DatabaseSeeder extends Seeder
     use WithoutModelEvents;
 
     /**
-     * Seed the application's database.
+     * Seed the application's database with roles and staff accounts for the CRM.
      */
     public function run(): void
     {
         $accounts = [
             ['role' => 'director_escuela', 'name' => 'Director de Escuela', 'email' => 'director@portal.local'],
             ['role' => 'secretaria', 'name' => 'Secretaría Académica', 'email' => 'secretaria@portal.local'],
+            ['role' => 'director_escuela', 'name' => 'Dirección de Escuela de Informática', 'email' => 'direccion.informatica@unitru.edu.pe'],
+            ['role' => 'secretaria', 'name' => 'Secretaría Académica de Informática', 'email' => 'secretaria.informatica@unitru.edu.pe'],
             ['role' => 'profesor', 'name' => 'Profesor Demo', 'email' => 'profesor@portal.local'],
             ['role' => 'alumno', 'name' => 'Alumno Demo', 'email' => 'alumno@portal.local'],
         ];

@@ -3,9 +3,9 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'modules.web-institucional.index');
+Route::redirect('/', '/seguimiento-egresado')->name('home');
 
-Route::view('/dashboard', 'dashboard')
+Route::redirect('/dashboard', '/seguimiento-egresado')
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 

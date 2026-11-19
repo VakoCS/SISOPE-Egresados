@@ -8,21 +8,7 @@ use Tests\TestCase;
 final class ModularDatabaseStructureTest extends TestCase
 {
     private const EXPECTED_COUNTS = [
-        'prematricula' => 3,
-        'gestion_matriculas' => 9,
-        'cotecu' => 10,
-        'gestion_horarios' => 15,
-        'gestion_practicas' => 11,
-        'calidad' => 12,
-        'tesis' => 22,
-        'bienestar' => 18,
-        'investigacion_formativa' => 11,
-        'seguimiento_estudiante' => 23,
         'seguimiento_egresado' => 45,
-    ];
-
-    private const PUBLIC_SURFACE_COUNTS = [
-        'web_institucional' => 13,
     ];
 
     private const SHARED_COUNTS = [
@@ -64,24 +50,6 @@ final class ModularDatabaseStructureTest extends TestCase
         }
     }
 
-    public function test_public_surfaces_have_the_expected_table_counts(): void
-    {
-        foreach (self::PUBLIC_SURFACE_COUNTS as $schema => $expected) {
-            $actual = DB::table('information_schema.tables')
-                ->where('table_schema', $schema)
-                ->where('table_type', 'BASE TABLE')
-                ->count();
-
-            $this->assertSame($expected, $actual, "Conteo incorrecto en {$schema}");
-        }
-    }
-
-    public function test_module_catalog_lists_the_eleven_modules(): void
-    {
-        $this->assertSame(11, DB::table('seguridad.modulo_sistema')->count());
-        $this->assertFalse(DB::table('seguridad.modulo_sistema')->where('codigo', 'web_institucional')->exists());
-    }
-
     public function test_module_foreign_keys_never_target_another_module(): void
     {
         $moduleSchemas = array_keys(self::EXPECTED_COUNTS);
@@ -105,28 +73,5 @@ final class ModularDatabaseStructureTest extends TestCase
             SQL, $moduleSchemas);
 
         $this->assertSame([], $invalid);
-    }
-
-    public function test_four_cross_schema_functions_exist(): void
-    {
-        $functions = collect(DB::select(<<<'SQL'
-            SELECT n.nspname || '.' || p.proname AS function_name
-            FROM pg_proc p
-            JOIN pg_namespace n ON n.oid = p.pronamespace
-            WHERE (n.nspname, p.proname) IN (
-                ('gestion_matriculas', 'calcular_creditos_matriculados'),
-                ('gestion_practicas', 'calcular_nota_final'),
-                ('calidad', 'calcular_valor_indicador'),
-                ('tesis', 'calcular_nota_sustentacion')
-            )
-            ORDER BY function_name
-            SQL))->pluck('function_name')->all();
-
-        $this->assertSame([
-            'calidad.calcular_valor_indicador',
-            'gestion_matriculas.calcular_creditos_matriculados',
-            'gestion_practicas.calcular_nota_final',
-            'tesis.calcular_nota_sustentacion',
-        ], $functions);
     }
 }

@@ -5,15 +5,30 @@
             <div class="flex">
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
+                    <a href="{{ route('seguimiento-egresado.index') }}">
                         <x-application-logo class="block h-12 w-12" />
                     </a>
                 </div>
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
+                    <x-nav-link :href="route('seguimiento-egresado.index')" :active="request()->routeIs('seguimiento-egresado.index', 'dashboard')">
+                        Inicio CRM
+                    </x-nav-link>
+                    <x-nav-link :href="route('seguimiento-egresado.padron')" :active="request()->routeIs('seguimiento-egresado.padron', 'seguimiento-egresado.padron.*')">
+                        Padrón y promociones
+                    </x-nav-link>
+                    <x-nav-link :href="route('seguimiento-egresado.campanias')" :active="request()->routeIs('seguimiento-egresado.campanias', 'seguimiento-egresado.campanias.*')">
+                        Campañas
+                    </x-nav-link>
+                    <x-nav-link :href="route('seguimiento-egresado.empresas')" :active="request()->routeIs('seguimiento-egresado.empresas', 'seguimiento-egresado.empresas.*')">
+                        Encuesta empresas
+                    </x-nav-link>
+                    <x-nav-link :href="route('seguimiento-egresado.indicadores')" :active="request()->routeIs('seguimiento-egresado.indicadores', 'seguimiento-egresado.indicadores.*')">
+                        Indicadores
+                    </x-nav-link>
+                    <x-nav-link :href="route('seguimiento-egresado.institucional')" :active="request()->routeIs('seguimiento-egresado.institucional', 'seguimiento-egresado.institucional.*')">
+                        Evaluación institucional
                     </x-nav-link>
                 </div>
             </div>
@@ -67,8 +82,23 @@
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
+            <x-responsive-nav-link :href="route('seguimiento-egresado.index')" :active="request()->routeIs('seguimiento-egresado.index', 'dashboard')">
+                Inicio CRM
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('seguimiento-egresado.padron')" :active="request()->routeIs('seguimiento-egresado.padron', 'seguimiento-egresado.padron.*')">
+                Padrón y promociones
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('seguimiento-egresado.campanias')" :active="request()->routeIs('seguimiento-egresado.campanias', 'seguimiento-egresado.campanias.*')">
+                Campañas
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('seguimiento-egresado.empresas')" :active="request()->routeIs('seguimiento-egresado.empresas', 'seguimiento-egresado.empresas.*')">
+                Encuesta empresas
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('seguimiento-egresado.indicadores')" :active="request()->routeIs('seguimiento-egresado.indicadores', 'seguimiento-egresado.indicadores.*')">
+                Indicadores
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('seguimiento-egresado.institucional')" :active="request()->routeIs('seguimiento-egresado.institucional', 'seguimiento-egresado.institucional.*')">
+                Evaluación institucional
             </x-responsive-nav-link>
         </div>
 

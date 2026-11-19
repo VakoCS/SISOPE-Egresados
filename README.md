@@ -1,13 +1,15 @@
-# Portal Gestión Dirección
+# CRM Seguimiento al Egresado (SISOPE)
 
-Aplicación Laravel 13 organizada como monolito modular de 12 módulos. Usa PostgreSQL 17, un esquema por módulo más `core`, `seguridad` y `comun`, Laravel Breeze y `spatie/laravel-permission`.
+Sistema de Información y CRM de **Seguimiento al Egresado** de la Escuela de Ingeniería Informática de la Universidad Nacional de Trujillo. Desarrollado en Laravel 13, PostgreSQL 17 (esquema `seguimiento_egresado`), Livewire 4, Alpine.js y Tailwind CSS.
 
-## Documentación
+Gestiona el padrón oficial de egresados, convocatorias de campañas por enlace seguro, encuestas a egresados y empleadores, y cálculo de indicadores de calidad y empleabilidad I1 a I6.
 
-- [Arquitectura del sistema](docs/architecture.md)
-- [Base de datos general](docs/base_de_datos.md)
-- [Guía para trabajar en un módulo](GUIA_MODULOS.md)
-- [Convenciones de Git](docs/PC-Convenciones-Git.md)
+## Documentación del CRM
+
+- [Documentación completa de Seguimiento al Egresado](docs/seguimiento-egresado/README.md)
+- [Arquitectura del módulo](docs/seguimiento-egresado/arquitectura.md)
+- [Manual de usuario](docs/seguimiento-egresado/manual-usuario.md)
+- [Base de datos y modelo](docs/seguimiento-egresado/base-de-datos.md)
 
 ## Instalación recomendada con Docker
 
