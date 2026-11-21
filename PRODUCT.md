@@ -8,42 +8,32 @@ web
 
 ## Users
 
-Director de escuela, secretaría, profesor y alumno de una escuela profesional universitaria.
+Director de Escuela, Secretaría Académica, empleadores y egresados de la Escuela de Ingeniería Informática.
 
 ## Product Purpose
 
-Centraliza el acceso a módulos de gestión académica e institucional. El módulo Calidad permite consultar procesos, indicadores, evidencias y planes de mejora desde la base compartida del portal.
+CRM y Sistema de Información para el Seguimiento al Egresado (SISOPE). Permite registrar el padrón oficial de egresados y promociones, convocar campañas de seguimiento por enlace personal, recoger encuestas a egresados y empleadores, y calcular indicadores de inserción laboral (I1 a I6) y formatos institucionales (F1 a F11).
 
 ## Operating Context
 
-El acceso público empieza en la web institucional, que funciona como superficie de comunicación y entrada, no como módulo. Tras autenticarse, cada persona elige un módulo desde el portal. Calidad usa rutas propias bajo `/calidad`.
+El sistema funciona de forma independiente. La portada general (`/` y `/seguimiento-egresado`) actúa como centro del CRM:
+- El personal institucional (Dirección y Secretaría) inicia sesión para acceder al padrón, campañas, encuestas, indicadores y evaluación institucional.
+- Los egresados acceden directamente a través del enlace personal y seguro de su invitación (`/seguimiento-egresado/acceso/{token}`), sin necesidad de cuenta.
+- Los empleadores acceden a su encuesta a través de enlaces con token seguro (`/seguimiento-egresado/encuesta-empresa/{token}`).
 
 ## Capabilities and Constraints
 
-- Laravel 13, Blade, Alpine.js y Tailwind CSS.
-- PostgreSQL organizado por esquemas y módulos.
-- Calidad debe leer las tablas existentes en `calidad`, `core`, `seguridad` y `comun`.
-- No se migran las tablas ni los datos de `projectCalidad`.
-- El diseño de `projectCalidad` es la referencia visual y funcional.
-- Rutas principales: `/web-institucional`, `/calidad/home` y `/calidad/mapa-procesos`.
+- Laravel 13, Blade, Livewire, Alpine.js y Tailwind CSS.
+- PostgreSQL 17 con esquema `seguimiento_egresado` y tablas compartidas de infraestructura.
+- Autenticación con Laravel Breeze y `spatie/laravel-permission` (roles `director_escuela` y `secretaria`).
+- Rutas del CRM bajo `/seguimiento-egresado`.
 
 ## Brand Commitments
 
-Voz institucional clara. Identidad SIGI/Portal de Gestión con azul marino, verde de acción, Fira Sans y códigos en Fira Code.
-
-## Evidence on Hand
-
-- Proyecto de referencia: `../projectCalidad`.
-- Guía visual: `../projectCalidad/rediseño/DISENO.md`.
-- Datos reales: esquemas actuales del portal; no se fabrican métricas.
+Identidad visual institucional de la Escuela de Ingeniería Informática (UNT): azul marino (`#17224d`), verde acento (`#09613f`), tipografías Fira Sans y Fira Code.
 
 ## Product Principles
 
-- Un acceso, varios módulos.
-- Los datos compartidos mantienen una sola fuente de verdad.
-- Cada ruta debe ser profunda, predecible y accesible.
-- Un estado vacío explica la ausencia de datos sin simular resultados.
-
-## Accessibility & Inclusion
-
-Contraste AA, navegación por teclado, foco visible, controles de al menos 44 px y estados expresados con texto además de color.
+- El CRM es la aplicación principal: flujo de trabajo directo sin selectores de otros módulos.
+- Acceso seguro sin contraseñas para egresados: enlace personal tokenizado con vigencia configurable.
+- Fidelidad de datos y trazabilidad: una operación, una transacción, con historial de estados académicos y mediciones inmutables.

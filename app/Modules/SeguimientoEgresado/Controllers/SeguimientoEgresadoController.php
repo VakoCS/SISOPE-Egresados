@@ -18,9 +18,18 @@ final class SeguimientoEgresadoController extends ModuleController
 
     protected const VIEW = 'modules.seguimiento-egresado.inicio';
 
-    /** Portada: el personal ve además qué campañas están por cerrar y cuántas respuestas faltan. */
+    /** Portada: exige autenticación institucional y muestra el estado según permisos. */
     public function index(): View
     {
+        $usuario = auth()->user();
+        if ($usuario) {
+            $perfil = \App\Modules\SeguimientoEgresado\Support\Accesos\Perfil::desdeRolesDelPortal($usuario->getRoleNames());
+            if (! $perfil) {
+                auth()->logout();
+                abort(403, 'Acceso denegado: este panel requiere rol de Secretaría Académica o Dirección de Escuela.');
+            }
+        }
+
         $personal = (bool) SesionAcceso::desde(request())->actual()?->puede('campanias.consultar');
 
         return view(static::VIEW, [

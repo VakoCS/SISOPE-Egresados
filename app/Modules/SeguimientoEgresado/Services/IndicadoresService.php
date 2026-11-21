@@ -311,4 +311,12 @@ class IndicadoresService
 
         return [];
     }
+
+    /**
+     * Acceso al repositorio de consultas analíticas avanzadas y CRM para indicadores.
+     */
+    public function repositorio(): \App\Modules\SeguimientoEgresado\Services\Indicadores\ConsultasIndicadoresRepository
+    {
+        return app(\App\Modules\SeguimientoEgresado\Services\Indicadores\ConsultasIndicadoresRepository::class);
+    }
 }

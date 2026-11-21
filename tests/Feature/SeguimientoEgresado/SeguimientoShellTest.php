@@ -9,7 +9,7 @@ use Tests\Support\SeguimientoEgresado\ComoPersonal;
 use Tests\Support\SeguimientoEgresado\UsaBaseDeDatos;
 use Tests\TestCase;
 
-/** Armazón del módulo dentro del portal: portada pública, páginas internas con la cuenta del portal y navegación activa. */
+/** Armazón del CRM de Seguimiento al Egresado: portada pública, páginas internas con la cuenta institucional y navegación activa. */
 class SeguimientoShellTest extends TestCase
 {
     use ComoPersonal, UsaBaseDeDatos;
@@ -33,22 +33,21 @@ class SeguimientoShellTest extends TestCase
         }
     }
 
-    public function test_la_cuenta_del_portal_ofrece_perfil_y_salir_y_el_menu_lateral_cambiar_de_modulo(): void
+    public function test_la_cuenta_ofrece_perfil_y_salir(): void
     {
         $usuario = $this->secretaria();
 
         $this->actingAs($usuario)->get(route('seguimiento-egresado.padron'))->assertOk()
             ->assertSee($usuario->name)
-            ->assertSee('Cambiar de módulo')
             ->assertSee('Mi perfil')
             ->assertSee(route('profile.edit'), false)
             ->assertSee('Cerrar sesión')
             ->assertSee(route('logout'), false);
     }
 
-    public function test_la_portada_es_publica_y_ofrece_las_cinco_areas_del_personal(): void
+    public function test_la_portada_ofrece_las_cinco_areas_al_personal_autenticado(): void
     {
-        $respuesta = $this->get(route('seguimiento-egresado.index'));
+        $respuesta = $this->actingAs($this->secretaria())->get(route('seguimiento-egresado.index'));
         $tarjetas = $this->xpath($respuesta)->query('//main[@id="contenido"]//a[contains(concat(" ", normalize-space(@class), " "), " sg-tile ")]');
         $this->assertCount(5, $tarjetas);
 
@@ -63,14 +62,13 @@ class SeguimientoShellTest extends TestCase
         );
 
         $respuesta->assertOk()
-            ->assertSee('Inicio · Seguimiento al Egresado | UNT')
-            ->assertSee('Iniciar sesión')
+            ->assertSee('Inicio · CRM Seguimiento al Egresado | UNT')
             ->assertDontSee('esquema de datos');
     }
 
     public function test_sin_sesion_las_paginas_internas_llevan_al_acceso_del_portal(): void
     {
-        foreach (['padron', 'campanias', 'empresas', 'indicadores', 'institucional'] as $nombre) {
+        foreach (['index', 'padron', 'campanias', 'empresas', 'indicadores', 'institucional'] as $nombre) {
             $this->get(route('seguimiento-egresado.'.$nombre))->assertRedirect(route('login'));
         }
     }

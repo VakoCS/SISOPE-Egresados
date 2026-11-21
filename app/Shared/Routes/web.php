@@ -3,11 +3,33 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'modules.web-institucional.index');
+Route::get('/', function () {
+    if (! auth()->check()) {
+        return redirect()->route('login');
+    }
 
-Route::view('/dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+    $perfil = \App\Modules\SeguimientoEgresado\Support\Accesos\Perfil::desdeRolesDelPortal(auth()->user()->getRoleNames());
+
+    if ($perfil) {
+        return redirect()->to(\App\Modules\SeguimientoEgresado\Support\Accesos\RutaInicial::para($perfil));
+    }
+
+    return redirect()->route('login');
+})->name('home');
+
+Route::get('/dashboard', function () {
+    if (! auth()->check()) {
+        return redirect()->route('login');
+    }
+
+    $perfil = \App\Modules\SeguimientoEgresado\Support\Accesos\Perfil::desdeRolesDelPortal(auth()->user()->getRoleNames());
+
+    if ($perfil) {
+        return redirect()->to(\App\Modules\SeguimientoEgresado\Support\Accesos\RutaInicial::para($perfil));
+    }
+
+    return redirect()->route('login');
+})->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
