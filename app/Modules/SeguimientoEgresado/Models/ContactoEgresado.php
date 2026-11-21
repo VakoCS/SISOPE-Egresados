@@ -16,9 +16,16 @@ class ContactoEgresado extends ModuleModel
         'celular_whatsapp',
         'telefono_fijo',
         'direccion',
+        'canal_preferido',
+        'horario_contacto_preferido',
+        'autoriza_mensajes',
         'vigente_desde',
         'vigente_hasta',
         'origen_registro',
+    ];
+
+    protected $casts = [
+        'autoriza_mensajes' => 'boolean',
     ];
 
     public function egresado()

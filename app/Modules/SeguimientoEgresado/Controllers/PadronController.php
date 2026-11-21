@@ -9,6 +9,7 @@ use App\Modules\SeguimientoEgresado\Models\ContactoEgresado;
 use App\Modules\SeguimientoEgresado\Models\Egresado;
 use App\Modules\SeguimientoEgresado\Models\HistorialEstadoAcademico;
 use App\Modules\SeguimientoEgresado\Models\ImportacionPadron;
+use App\Modules\SeguimientoEgresado\Models\InteraccionCrm;
 use App\Modules\SeguimientoEgresado\Models\PlanCurricular;
 use App\Modules\SeguimientoEgresado\Models\UsuarioInterno;
 use App\Modules\SeguimientoEgresado\Services\IndicadoresService;
@@ -29,6 +30,7 @@ class PadronController extends Controller
         $busqueda = $request->query('q');
         $cohorteFiltro = $request->query('cohorte');
         $estadoFiltro = $request->query('estado');
+        $segmentoFiltro = $request->query('segmento');
 
         try {
             // 1. Cohortes y métricas de I1 (denominador oficial = ingresantes)
@@ -39,6 +41,7 @@ class PadronController extends Controller
                 'cohorte',
                 'contactoVigente',
                 'estadoVigente.estadoAcademico',
+                'interacciones.usuarioRegistro',
             ]);
 
             if (! empty($busqueda)) {
@@ -53,6 +56,10 @@ class PadronController extends Controller
                 $egresadosQuery->porEstado($estadoFiltro);
             }
 
+            if (! empty($segmentoFiltro) && $segmentoFiltro !== 'todos') {
+                $egresadosQuery->porSegmento($segmentoFiltro);
+            }
+
             $egresados = $egresadosQuery->orderBy('apellido_paterno')->get();
 
             // 3. Importaciones de secretaría para la pestaña 4
@@ -63,6 +70,7 @@ class PadronController extends Controller
             // 4. Catálogos para filtros
             $estadosAcademicos = CatEstadoAcademico::where('activo', true)->get();
             $planesCurriculares = PlanCurricular::withCount('cohortes')->orderBy('vigencia_desde', 'asc')->get();
+            $segmentosDisponibles = ['PENDIENTE_CONTACTO', 'CONTACTADO', 'EMPLEADO_EN_CARRERA', 'EMPLEADO_OTRA_AREA', 'DESEMPLEADO', 'EMPRENDEDOR', 'ESTUDIANTE_POSGRADO'];
 
             // 5. Métricas globales del módulo M1
             $totalEgresados = Egresado::count();
@@ -81,6 +89,7 @@ class PadronController extends Controller
             $importaciones = collect();
             $estadosAcademicos = collect();
             $planesCurriculares = collect();
+            $segmentosDisponibles = [];
             $totalEgresados = 0;
             $totalCohortes = 0;
             $totalAcreditados = 0;
@@ -94,6 +103,7 @@ class PadronController extends Controller
             'importaciones',
             'estadosAcademicos',
             'planesCurriculares',
+            'segmentosDisponibles',
             'totalEgresados',
             'totalCohortes',
             'totalAcreditados',
@@ -101,6 +111,7 @@ class PadronController extends Controller
             'busqueda',
             'cohorteFiltro',
             'estadoFiltro',
+            'segmentoFiltro',
             'i1Data'
         ));
     }
@@ -160,6 +171,8 @@ class PadronController extends Controller
             'estadoVigente.estadoAcademico',
             'historialEstados.estadoAcademico',
             'historialEstados.usuarioRegistro',
+            'interacciones.usuarioRegistro',
+            'interacciones.campania',
         ])->findOrFail($id);
 
         $historialSeguimiento = $indicadoresService->getHistorialSeguimiento($id);
@@ -168,8 +181,15 @@ class PadronController extends Controller
             'egresado' => $egresado,
             'nombre_completo' => $egresado->nombre_completo,
             'contacto' => $egresado->contactoVigente,
+            'preferencias_contacto' => [
+                'canal_preferido' => $egresado->contactoVigente?->canal_preferido ?? 'CORREO_INSTITUCIONAL',
+                'horario_preferido' => $egresado->contactoVigente?->horario_contacto_preferido ?? 'SIN_PREFERENCIA',
+                'autoriza_mensajes' => $egresado->contactoVigente?->autoriza_mensajes ?? true,
+            ],
+            'segmento' => $egresado->segmento ?? 'PENDIENTE_CONTACTO',
             'estado_actual' => $egresado->estadoVigente?->estadoAcademico?->nombre ?? 'Egresado',
             'historial_academico' => $egresado->historialEstados,
+            'interacciones_crm' => $egresado->interacciones,
             'historial_seguimiento' => $historialSeguimiento,
         ]);
     }
@@ -202,7 +222,7 @@ class PadronController extends Controller
      */
     public function guardarEgresado(Request $request)
     {
-        $id = $request->input('id');
+        $id = $request->input('id') ?? $request->input('id_egresado');
 
         $request->validate([
             'codigo_matricula' => 'required|string|max:20',
@@ -235,6 +255,17 @@ class PadronController extends Controller
 
             if ($id) {
                 $egresado = Egresado::findOrFail($id);
+                $duplicado = Egresado::where('id', '!=', $id)
+                    ->where(function ($q) use ($request) {
+                        $q->where('codigo_matricula', $request->codigo_matricula)
+                            ->orWhere('numero_documento', $request->numero_documento);
+                    })->first();
+                if ($duplicado) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Ya existe otro egresado registrado con la matrícula o documento indicado.',
+                    ], 422);
+                }
             } else {
                 $existe = Egresado::where('codigo_matricula', $request->codigo_matricula)
                     ->orWhere('numero_documento', $request->numero_documento)
@@ -260,6 +291,9 @@ class PadronController extends Controller
             $egresado->apellido_materno = $request->apellido_materno;
             $egresado->periodo_egreso = $request->periodo_egreso ?: null;
             $egresado->correo_institucional = $request->correo_institucional;
+            if ($request->filled('segmento')) {
+                $egresado->segmento = $request->segmento;
+            }
             $egresado->save();
 
             // El contacto solo se guarda si la Secretaría trae un correo personal y un celular reales; si no, lo registra
@@ -274,6 +308,15 @@ class PadronController extends Controller
                 }
                 $contacto->correo_personal = $request->correo_personal;
                 $contacto->celular_whatsapp = $request->telefono;
+                if ($request->filled('canal_preferido')) {
+                    $contacto->canal_preferido = $request->canal_preferido;
+                }
+                if ($request->filled('horario_contacto_preferido')) {
+                    $contacto->horario_contacto_preferido = $request->horario_contacto_preferido;
+                }
+                if ($request->has('autoriza_mensajes')) {
+                    $contacto->autoriza_mensajes = $request->boolean('autoriza_mensajes');
+                }
                 $contacto->save();
             }
 
@@ -509,11 +552,81 @@ class PadronController extends Controller
         });
     }
 
+    /**
+     * Devuelve el historial de interacciones CRM de un egresado.
+     */
+    public function listarInteracciones(int $id)
+    {
+        $egresado = Egresado::findOrFail($id);
+        $interacciones = InteraccionCrm::with(['usuarioRegistro', 'campania'])
+            ->where('id_egresado', $id)
+            ->orderByDesc('fecha_interaccion')
+            ->get();
+
+        return response()->json([
+            'egresado_id' => $id,
+            'nombre_completo' => $egresado->nombre_completo,
+            'segmento' => $egresado->segmento,
+            'interacciones' => $interacciones,
+        ]);
+    }
+
+    /**
+     * Registra una interacción CRM con un egresado (llamada, correo, WhatsApp, etc.).
+     */
+    public function guardarInteraccion(Request $request, int $id)
+    {
+        $egresado = Egresado::findOrFail($id);
+
+        $request->validate([
+            'canal' => 'required|string|in:CORREO,WHATSAPP,LLAMADA,PRESENCIAL,OTRO',
+            'estado' => 'required|string|in:CONTACTADO,PENDIENTE,RESPONDIO,REQUIERE_SEGUIMIENTO,NO_CONTACTADO',
+            'id_campania' => 'nullable|integer|exists:'.Esquema::validar('campania_seguimiento').',id',
+            'resumen' => 'required|string|max:255',
+            'observacion' => 'nullable|string|max:1000',
+            'proximo_contacto_en' => 'nullable|date',
+            'nuevo_segmento' => 'nullable|string|max:60',
+            'actualizar_segmento' => 'nullable|string|max:60',
+        ]);
+
+        $usuarioId = UsuarioInterno::idActual() ?? DB::table('seguimiento_egresado.usuario_interno')->value('id') ?? 1;
+
+        $interaccion = DB::transaction(function () use ($request, $egresado, $usuarioId) {
+            $registro = InteraccionCrm::create([
+                'id_egresado' => $egresado->id,
+                'id_campania' => $request->id_campania,
+                'id_usuario_registro' => $usuarioId,
+                'canal' => strtoupper($request->canal),
+                'estado' => strtoupper($request->estado),
+                'resumen' => $request->resumen,
+                'observacion' => $request->observacion,
+                'fecha_interaccion' => now(),
+                'proximo_contacto_en' => $request->proximo_contacto_en,
+            ]);
+
+            $nuevoSegmento = $request->nuevo_segmento ?? $request->actualizar_segmento;
+            if (!empty($nuevoSegmento)) {
+                $egresado->segmento = $nuevoSegmento;
+                $egresado->save();
+            }
+
+            return $registro;
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Interacción CRM registrada correctamente.',
+            'interaccion' => $interaccion->load(['usuarioRegistro', 'campania']),
+            'segmento_actual' => $egresado->fresh()->segmento,
+        ]);
+    }
+
     /** Momento en que se cierra una vigencia: ahora, pero nunca igual ni anterior al inicio de esa vigencia (restricción de la BD). */
     private function cierreDeVigencia(mixed $vigenteDesde): Carbon
     {
         $desde = Carbon::parse($vigenteDesde);
+        $ahora = now();
 
-        return now()->greaterThan($desde) ? now() : $desde->copy()->addSecond();
+        return ($ahora->isAfter($desde) && $ahora->diffInSeconds($desde) >= 1) ? $ahora : $desde->copy()->addSecond();
     }
 }

@@ -17,6 +17,7 @@ class CampaniaSeguimiento extends ModuleModel
         'horizonte_anios',
         'descripcion',
         'periodo',
+        'segmento_objetivo',
         'fecha_inicio',
         'fecha_fin',
         'estado',
@@ -36,6 +37,11 @@ class CampaniaSeguimiento extends ModuleModel
     public function invitaciones()
     {
         return $this->hasMany(InvitacionEgresado::class, 'id_campania');
+    }
+
+    public function interacciones()
+    {
+        return $this->hasMany(InteraccionCrm::class, 'id_campania');
     }
 
     public function usuarioCreacion()

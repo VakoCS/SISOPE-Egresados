@@ -24,6 +24,7 @@ class Egresado extends ModuleModel
         'fecha_ingreso',
         'fecha_egreso',
         'periodo_egreso',
+        'segmento',
         'creado_en',
     ];
 
@@ -55,6 +56,11 @@ class Egresado extends ModuleModel
     public function invitaciones()
     {
         return $this->hasMany(InvitacionEgresado::class, 'id_egresado');
+    }
+
+    public function interacciones()
+    {
+        return $this->hasMany(InteraccionCrm::class, 'id_egresado')->orderByDesc('fecha_interaccion');
     }
 
     public function getNombreCompletoAttribute(): string
@@ -95,6 +101,15 @@ class Egresado extends ModuleModel
             return $query->whereHas('estadoVigente.estadoAcademico', function ($q) use ($codigoEstado) {
                 $q->where('codigo', strtoupper($codigoEstado));
             });
+        }
+
+        return $query;
+    }
+
+    public function scopePorSegmento($query, ?string $segmento)
+    {
+        if (! empty($segmento) && $segmento !== 'todos') {
+            return $query->where('segmento', $segmento);
         }
 
         return $query;

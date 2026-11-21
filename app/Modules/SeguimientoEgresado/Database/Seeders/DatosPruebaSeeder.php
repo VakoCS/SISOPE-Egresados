@@ -9,6 +9,10 @@ class DatosPruebaSeeder extends Seeder
 {
     public function run(): void
     {
+        if (DB::table('seguimiento_egresado.plan_curricular')->where('codigo_version', 'Plan 1997')->exists()) {
+            return;
+        }
+
         $usuarioSec = DB::table('seguimiento_egresado.usuario_interno')->where('correo_institucional', 'secretaria.informatica@unitru.edu.pe')->value('id');
         $usuarioDir = DB::table('seguimiento_egresado.usuario_interno')->where('correo_institucional', 'direccion.informatica@unitru.edu.pe')->value('id');
         $paisPe = DB::table('seguimiento_egresado.cat_pais')->where('codigo', 'PE')->value('id');

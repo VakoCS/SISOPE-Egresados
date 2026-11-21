@@ -89,12 +89,10 @@ class PortadaTest extends TestCase
             ->assertDontSee('Ver todas las campañas');
     }
 
-    public function test_quien_no_es_personal_no_ve_los_avisos(): void
+    public function test_sin_sesion_no_se_accede_a_la_portada_y_redirige_a_login(): void
     {
         $this->campaniaDeEgresados('Campaña interna', 10, 2, 0);
 
-        $this->get(route('seguimiento-egresado.index'))->assertOk()
-            ->assertDontSee('Por cerrar')
-            ->assertDontSee('Campaña interna');
+        $this->get(route('seguimiento-egresado.index'))->assertRedirect(route('login'));
     }
 }
