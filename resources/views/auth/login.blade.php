@@ -1,7 +1,6 @@
 <x-guest-layout>
     <div class="auth-heading">
-        <h1>Bienvenido de nuevo.</h1>
-        <p>Usa las credenciales asignadas a tu rol institucional.</p>
+        <h1>Iniciar sesión</h1>
     </div>
 
     <x-auth-session-status class="auth-status" :status="session('status')" />
@@ -9,18 +8,21 @@
     @if ($errors->any())
         <div class="auth-error-summary" role="alert" tabindex="-1" x-data x-init="$nextTick(() => $el.focus())">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5m0 3h.01M10.3 3.7 2.7 17a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/></svg>
-            <div><strong>No pudimos iniciar la sesión.</strong><p>Revisa tu correo y contraseña, e inténtalo otra vez.</p></div>
+            <div>
+                <strong>No pudimos iniciar la sesión.</strong>
+                <p>{{ $errors->first() ?? 'Revisa tu correo y contraseña, e inténtalo otra vez.' }}</p>
+            </div>
         </div>
     @endif
 
-    <form class="auth-form" method="POST" action="{{ route('login') }}" x-data="{ showPassword: false, submitting: false }" x-on:submit="submitting = true">
+    <form class="auth-form" method="POST" action="{{ route('login') }}" novalidate x-data="{ showPassword: false, submitting: false }" x-on:submit="submitting = true">
         @csrf
 
         <div class="auth-field">
             <label for="email">Correo institucional</label>
             <div class="auth-input-wrap">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
-                <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" inputmode="email" placeholder="nombre@portal.local" @error('email') aria-invalid="true" aria-describedby="email-error" @enderror>
+                <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" inputmode="email" placeholder="correo@unitru.edu.pe" @error('email') aria-invalid="true" aria-describedby="email-error" @enderror>
             </div>
             @error('email')<p id="email-error" class="auth-field-error">{{ $message }}</p>@enderror
         </div>
@@ -51,11 +53,9 @@
         </div>
 
         <button class="auth-submit" type="submit" x-bind:disabled="submitting">
-            <span x-show="!submitting">Ingresar al portal</span>
+            <span x-show="!submitting">Ingresar</span>
             <span x-cloak x-show="submitting" class="auth-submit-loading"><i aria-hidden="true"></i>Validando acceso…</span>
             <svg x-show="!submitting" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
         </button>
     </form>
-
-    <p class="auth-help">¿Necesitas acceso? Contacta a la administración de tu escuela.</p>
 </x-guest-layout>

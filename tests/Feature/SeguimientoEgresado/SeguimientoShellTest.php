@@ -45,9 +45,9 @@ class SeguimientoShellTest extends TestCase
             ->assertSee(route('logout'), false);
     }
 
-    public function test_la_portada_es_publica_y_ofrece_las_cinco_areas_del_personal(): void
+    public function test_la_portada_ofrece_las_cinco_areas_al_personal_autenticado(): void
     {
-        $respuesta = $this->get(route('seguimiento-egresado.index'));
+        $respuesta = $this->actingAs($this->secretaria())->get(route('seguimiento-egresado.index'));
         $tarjetas = $this->xpath($respuesta)->query('//main[@id="contenido"]//a[contains(concat(" ", normalize-space(@class), " "), " sg-tile ")]');
         $this->assertCount(5, $tarjetas);
 
@@ -63,13 +63,12 @@ class SeguimientoShellTest extends TestCase
 
         $respuesta->assertOk()
             ->assertSee('Inicio · CRM Seguimiento al Egresado | UNT')
-            ->assertSee('Iniciar sesión')
             ->assertDontSee('esquema de datos');
     }
 
     public function test_sin_sesion_las_paginas_internas_llevan_al_acceso_del_portal(): void
     {
-        foreach (['padron', 'campanias', 'empresas', 'indicadores', 'institucional'] as $nombre) {
+        foreach (['index', 'padron', 'campanias', 'empresas', 'indicadores', 'institucional'] as $nombre) {
             $this->get(route('seguimiento-egresado.'.$nombre))->assertRedirect(route('login'));
         }
     }

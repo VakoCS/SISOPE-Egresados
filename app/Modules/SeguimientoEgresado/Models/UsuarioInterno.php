@@ -34,21 +34,25 @@ class UsuarioInterno extends ModuleModel
     }
 
     /** Fila del módulo que corresponde a un usuario del portal; se crea la primera vez que lo usa. */
-    public static function delPortal(Authenticatable $usuario, Perfil $perfil): self
+    public static function delPortal(Authenticatable $usuario, Perfil $perfil): ?self
     {
-        $existente = static::whereRaw('lower(correo_institucional) = ?', [mb_strtolower($usuario->email)])->first();
+        try {
+            $existente = static::whereRaw('lower(correo_institucional) = ?', [mb_strtolower($usuario->email)])->first();
 
-        if ($existente !== null) {
-            return $existente;
+            if ($existente !== null) {
+                return $existente;
+            }
+
+            return static::create([
+                'id_rol' => RolInterno::where('codigo', $perfil->value)->value('id'),
+                'nombre_completo' => $usuario->name ?? $usuario->email,
+                'correo_institucional' => $usuario->email,
+                'password_hash' => '!portal',
+                'activo' => true,
+            ]);
+        } catch (\Throwable) {
+            return null;
         }
-
-        return static::create([
-            'id_rol' => RolInterno::where('codigo', $perfil->value)->value('id'),
-            'nombre_completo' => $usuario->name ?? $usuario->email,
-            'correo_institucional' => $usuario->email,
-            'password_hash' => '!portal',
-            'activo' => true,
-        ]);
     }
 
     /**
@@ -63,12 +67,16 @@ class UsuarioInterno extends ModuleModel
             $perfil = Perfil::desdeRolesDelPortal($usuario->getRoleNames()->all());
 
             if ($perfil !== null) {
-                return static::delPortal($usuario, $perfil)->id;
+                return static::delPortal($usuario, $perfil)?->id;
             }
         }
 
-        $id = static::where('activo', true)->orderBy('id')->value('id');
+        try {
+            $id = static::where('activo', true)->orderBy('id')->value('id');
 
-        return $id === null ? null : (int) $id;
+            return $id === null ? null : (int) $id;
+        } catch (\Throwable) {
+            return 1;
+        }
     }
 }

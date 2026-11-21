@@ -39,8 +39,8 @@ Route::prefix('seguimiento-egresado')
         $interna = fn (string $capacidad): array => ['auth', RequiereCapacidad::class.':'.$capacidad];
         $egresado = fn (string $capacidad): array => [RequiereCapacidad::class.':'.$capacidad];
 
-        // Portada del módulo (pública: presenta el módulo y lleva a cada área).
-        Route::get('/', [SeguimientoEgresadoController::class, 'index'])->name('index');
+        // Portada del módulo (requiere autenticación)
+        Route::get('/', [SeguimientoEgresadoController::class, 'index'])->middleware('auth')->name('index');
         Route::get('/crear', [SeguimientoEgresadoController::class, 'create'])->name('create');
         Route::post('/', [SeguimientoEgresadoController::class, 'store'])->name('store');
 
@@ -49,6 +49,8 @@ Route::prefix('seguimiento-egresado')
         Route::get('/padron/promocion/{promocion}', [PromocionController::class, 'show'])->whereNumber('promocion')->middleware($interna('padron.consultar'))->name('padron.promocion');
         Route::get('/padron/consulta', [PadronController::class, 'index'])->middleware($interna('padron.consultar'))->name('padron.consulta');
         Route::get('/padron/egresado/{id}', [PadronController::class, 'fichaEgresado'])->middleware($interna('padron.consultar'))->name('padron.ficha');
+        Route::get('/padron/egresado/{id}/interacciones', [PadronController::class, 'listarInteracciones'])->whereNumber('id')->middleware($interna('padron.consultar'))->name('padron.interacciones');
+        Route::post('/padron/egresado/{id}/interaccion', [PadronController::class, 'guardarInteraccion'])->whereNumber('id')->middleware($interna('padron.gestionar'))->name('padron.guardar-interaccion');
         Route::get('/padron/plantilla', [PadronController::class, 'descargarPlantilla'])->middleware($interna('padron.consultar'))->name('padron.plantilla');
         Route::post('/padron/importar', [PadronController::class, 'importar'])->middleware($interna('padron.gestionar'))->name('padron.importar');
         Route::post('/padron/egresado', [PadronController::class, 'guardarEgresado'])->middleware($interna('padron.gestionar'))->name('padron.guardar-egresado');
