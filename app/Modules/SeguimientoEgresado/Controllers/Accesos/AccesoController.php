@@ -28,11 +28,13 @@ final class AccesoController extends Controller
         $resultado = $enlaces->abrir($token);
 
         if (! $resultado->esPermitido()) {
+            SesionAcceso::desde($request)->cerrar();
+
             // La misma respuesta para un enlace desconocido, anulado o vencido: no revela cuál es el caso.
             return response()->view('modules.seguimiento-egresado.acceso.enlace', ['noValido' => true], 404);
         }
 
-        SesionAcceso::desde($request)->iniciarEgresado($resultado);
+        SesionAcceso::desde($request)->iniciarEgresado($resultado, EnlaceInvitacion::hashDe($token));
 
         return redirect()->route('seguimiento-egresado.egresado.inicio');
     }

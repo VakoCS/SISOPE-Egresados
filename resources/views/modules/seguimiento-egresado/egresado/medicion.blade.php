@@ -24,6 +24,9 @@
       @if ($m['situacion_codigo'] === 'TRABAJA')
         <div><dt>Trabajo relacionado con la carrera</dt><dd>{{ $sino($m['trabajo_relacionado']) }}</dd></div>
         <div><dt>Empleador o cliente</dt><dd>{{ $m['nombre_empleador_cliente'] ?? '—' }}</dd></div>
+        <div><dt>Cargo actual</dt><dd>{{ $m['cargo_actual'] ?? '—' }}</dd></div>
+        <div><dt>Ingreso mensual aproximado en soles</dt><dd>{{ \App\Modules\SeguimientoEgresado\Requests\EncuestaSeguimientoRequest::INGRESOS[$m['rango_ingreso']] ?? '—' }}</dd></div>
+        <div><dt>Tiempo de inserción laboral</dt><dd>{{ \App\Modules\SeguimientoEgresado\Requests\EncuestaSeguimientoRequest::INSERCION[$m['tiempo_insercion']] ?? '—' }}</dd></div>
         <div><dt>Tipo de vínculo</dt><dd>{{ $m['modalidad_laboral'] ?? '—' }}</dd></div>
         <div><dt>Modalidad de trabajo</dt><dd>{{ $m['modalidad_trabajo'] ?? '—' }}</dd></div>
         <div><dt>Sector</dt><dd>{{ $m['sector'] ?? '—' }}</dd></div>
@@ -41,6 +44,7 @@
     <h2 class="sg-section-title" id="t-sat">Satisfacción y habilidades</h2>
     <dl class="sgs-ident">
       <div><dt>Satisfacción con la formación</dt><dd>{{ $m['satisfaccion'] ?? '—' }}</dd></div>
+      <div><dt>Pertinencia curricular</dt><dd>{{ \App\Modules\SeguimientoEgresado\Requests\EncuestaSeguimientoRequest::PERTINENCIA[$m['pertinencia_curricular']] ?? '—' }}</dd></div>
       <div><dt>Habilidades con formación insuficiente</dt><dd>{{ count($m['brechas']) ? collect($m['brechas'])->map($habilidad)->implode(', ') : '—' }}</dd></div>
       <div><dt>Fortalezas</dt><dd>{{ count($m['fortalezas']) ? collect($m['fortalezas'])->map($habilidad)->implode(', ') : '—' }}</dd></div>
       <div><dt>Comentario</dt><dd>{{ $m['comentario'] ?? '—' }}</dd></div>

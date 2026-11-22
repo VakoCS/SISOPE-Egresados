@@ -21,6 +21,8 @@ final class SesionAcceso
 
     private const MEMO_INTERNA = 'seguimiento-egresado.identidad-interna';
 
+    private const FIRMA_ENLACE = 'seguimiento-egresado.firma-enlace';
+
     public function __construct(
         private readonly Session $sesion,
         private readonly ?Request $peticion = null,
@@ -31,7 +33,7 @@ final class SesionAcceso
         return new self($request->session(), $request);
     }
 
-    public function iniciarEgresado(ResultadoAcceso $resultado): void
+    public function iniciarEgresado(ResultadoAcceso $resultado, ?string $tokenHash = null): void
     {
         if (! $resultado->esPermitido()) {
             throw new \InvalidArgumentException('Solo un acceso permitido puede abrir la sesión del egresado.');
@@ -45,6 +47,13 @@ final class SesionAcceso
             'invitacion_id' => $datos['invitacion_id'],
             'vence_en' => $datos['vence_en'],
         ]);
+        $this->sesion->forget(self::FIRMA_ENLACE);
+        if ($tokenHash !== null) {
+            $this->sesion->put(self::FIRMA_ENLACE, $this->firma(
+                $datos['egresado_id'], $datos['invitacion_id'], $datos['campania_id'], $datos['proposito'],
+                $tokenHash, CarbonImmutable::parse($datos['vence_en'])->getTimestamp(),
+            ));
+        }
     }
 
     /** Identidad del egresado que entró con su enlace; si la sesión ya venció, la elimina y devuelve null. */
@@ -56,15 +65,31 @@ final class SesionAcceso
             return null;
         }
 
+        if (! is_int($datos['egresado_id'] ?? null) || $datos['egresado_id'] < 1
+            || (isset($datos['invitacion_id']) && (! is_int($datos['invitacion_id']) || $datos['invitacion_id'] < 1))
+            || ! is_string($datos['vence_en'] ?? null)) {
+            $this->cerrar();
+
+            return null;
+        }
+
+        try {
+            $vence = CarbonImmutable::parse($datos['vence_en']);
+        } catch (\Exception) {
+            $this->cerrar();
+
+            return null;
+        }
+
         $identidad = new Identidad(
             perfil: Perfil::Egresado,
             egresadoId: $datos['egresado_id'] ?? null,
             invitacionId: $datos['invitacion_id'] ?? null,
-            venceEn: isset($datos['vence_en']) ? CarbonImmutable::parse($datos['vence_en']) : null,
+            venceEn: $vence,
         );
 
         if ($identidad->haVencido()) {
-            $this->sesion->forget(self::CLAVE);
+            $this->cerrar();
 
             return null;
         }
@@ -107,6 +132,23 @@ final class SesionAcceso
 
     public function cerrar(): void
     {
-        $this->sesion->forget(self::CLAVE);
+        $this->sesion->forget([self::CLAVE, self::FIRMA_ENLACE]);
+    }
+
+    /** Revalida el alcance de la sesión y detecta rotación del token sin guardar su valor plano. */
+    public function correspondeAlEnlace(object $invitacion): bool
+    {
+        $identidad = $this->egresado();
+        $firma = $this->sesion->get(self::FIRMA_ENLACE);
+
+        return $identidad !== null && is_string($firma) && hash_equals($firma, $this->firma(
+            $identidad->egresadoId, (int) $invitacion->id, $invitacion->id_campania === null ? null : (int) $invitacion->id_campania,
+            $invitacion->proposito, $invitacion->token_hash, $identidad->venceEn->getTimestamp(),
+        ));
+    }
+
+    private function firma(int $egresado, int $invitacion, ?int $campania, string $proposito, string $hash, int $vence): string
+    {
+        return hash_hmac('sha256', json_encode([$egresado, $invitacion, $campania, $proposito, $hash, $vence]), config('app.key'));
     }
 }

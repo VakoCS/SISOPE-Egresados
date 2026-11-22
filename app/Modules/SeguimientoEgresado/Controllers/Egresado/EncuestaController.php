@@ -84,6 +84,7 @@ final class EncuestaController extends EgresadoController
      */
     private function invitacionElegida(Request $request, ?int $invitacionDelEnlace): ?int
     {
+        $request->validate(['invitacion' => ['sometimes', 'required', 'integer', 'min:1']]);
         $elegida = filter_var($request->input('invitacion'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
         return $elegida === false ? $invitacionDelEnlace : $elegida;
@@ -94,7 +95,7 @@ final class EncuestaController extends EgresadoController
         return DB::table('seguimiento_egresado.invitacion_egresado as i')
             ->leftJoin('seguimiento_egresado.campania_seguimiento as c', 'c.id', '=', 'i.id_campania')
             ->where('i.id', $invitacionId)->where('i.id_egresado', $egresadoId)
-            ->first(['i.id', 'i.proposito', 'i.estado', 'i.expira_en', 'c.nombre as campania', 'c.periodo', 'c.fecha_fin', 'c.estado as estado_campania']);
+            ->first(['i.id', 'i.proposito', 'i.estado', 'i.expira_en', 'c.nombre as campania', 'c.periodo', 'c.fecha_inicio', 'c.fecha_fin', 'c.estado as estado_campania']);
     }
 
     private function motivoNoDisponible(object $invitacion): ?MotivoInvitacion
@@ -104,6 +105,8 @@ final class EncuestaController extends EgresadoController
             $invitacion->estado === 'EXPIRADA' => MotivoInvitacion::Expirada,
             CarbonImmutable::parse($invitacion->expira_en)->lessThanOrEqualTo(CarbonImmutable::now()) => MotivoInvitacion::Vencida,
             $invitacion->estado_campania !== 'ABIERTA' => MotivoInvitacion::CampaniaCerrada,
+            CarbonImmutable::parse($invitacion->fecha_inicio, 'America/Lima')->startOfDay()->isFuture() => MotivoInvitacion::CampaniaCerrada,
+            CarbonImmutable::parse($invitacion->fecha_fin, 'America/Lima')->endOfDay()->isPast() => MotivoInvitacion::CampaniaCerrada,
             default => null,
         };
     }

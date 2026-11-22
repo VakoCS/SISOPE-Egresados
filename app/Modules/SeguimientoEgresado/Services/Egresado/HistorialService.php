@@ -19,17 +19,23 @@ final class HistorialService
      */
     public function campanias(int $egresadoId): array
     {
-        $hoy = CarbonImmutable::now()->toDateString();
+        $ahora = CarbonImmutable::now();
+        $hoy = $ahora->setTimezone('America/Lima')->toDateString();
 
-        return DB::table('seguimiento_egresado.vw_historial_seguimiento')
-            ->where('id_egresado', $egresadoId)
-            ->orderByDesc('fecha_inicio')->orderByDesc('id_campania')
-            ->get()
-            ->map(function (object $fila) use ($hoy): array {
+        return DB::table('seguimiento_egresado.vw_historial_seguimiento as h')
+            ->join('seguimiento_egresado.invitacion_egresado as i', function ($join) {
+                $join->on('i.id_egresado', '=', 'h.id_egresado')->on('i.id_campania', '=', 'h.id_campania')->where('i.proposito', 'SEGUIMIENTO');
+            })
+            ->join('seguimiento_egresado.campania_seguimiento as c', 'c.id', '=', 'h.id_campania')
+            ->where('h.id_egresado', $egresadoId)
+            ->orderByDesc('h.fecha_inicio')->orderByDesc('h.id_campania')
+            ->get(['h.*', 'i.id as id_invitacion', 'i.expira_en', 'c.estado as estado_campania'])
+            ->map(function (object $fila) use ($hoy, $ahora): array {
                 $datos = (array) $fila;
                 $datos['estado_respuesta'] = match (true) {
                     $fila->id_medicion !== null => 'RESPONDIDA',
-                    in_array($fila->estado_invitacion, ['EXPIRADA', 'ANULADA'], true) || $fila->fecha_fin < $hoy => 'NO_RESPONDIO',
+                    in_array($fila->estado_invitacion, ['EXPIRADA', 'ANULADA'], true) || $fila->fecha_fin < $hoy
+                        || $fila->estado_campania === 'CERRADA' || CarbonImmutable::parse($fila->expira_en)->lessThanOrEqualTo($ahora) => 'NO_RESPONDIO',
                     default => 'PENDIENTE',
                 };
 
@@ -64,6 +70,7 @@ final class HistorialService
                 'sc.nombre as sector', 'ap.nombre as area_profesional', 'm.nombre_empleador_cliente',
                 'pe.nombre as pais_empleador', 'm.region_empleo', 'pr.nombre as pais_residencia', 'm.ciudad_residencia',
                 'm.nivel_ingles', 'm.otros_idiomas', 'm.autoriza_contacto_empresa', 'm.contacto_jefe',
+                'm.cargo_actual', 'm.rango_ingreso', 'm.tiempo_insercion', 'se.pertinencia_curricular',
                 'ns.codigo as satisfaccion_codigo', 'ns.nombre as satisfaccion', 'se.comentario',
             ]);
 
@@ -93,7 +100,7 @@ final class HistorialService
     {
         return DB::table('seguimiento_egresado.contacto_egresado')->where('id_egresado', $egresadoId)
             ->orderByDesc('vigente_desde')
-            ->get(['id', 'correo_personal', 'celular_whatsapp', 'telefono_fijo', 'direccion', 'vigente_desde', 'vigente_hasta', 'origen_registro'])
+            ->get(['id', 'correo_personal', 'celular_whatsapp', 'telefono_fijo', 'direccion', 'canal_preferido', 'horario_contacto_preferido', 'autoriza_mensajes', 'vigente_desde', 'vigente_hasta', 'origen_registro'])
             ->map(fn ($c) => (array) $c)->all();
     }
 

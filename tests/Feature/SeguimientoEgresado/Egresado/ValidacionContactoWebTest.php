@@ -2,25 +2,29 @@
 
 namespace Tests\Feature\SeguimientoEgresado\Egresado;
 
-use App\Modules\SeguimientoEgresado\Support\Accesos\Perfil;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\SeguimientoEgresado\ConEnlaceEgresado;
+use Tests\Support\SeguimientoEgresado\FabricaSeguimiento;
+use Tests\Support\SeguimientoEgresado\UsaBaseDeDatos;
 use Tests\TestCase;
 
 /**
  * Validación del formulario de contacto por HTTP: cada campo con un valor incorrecto se rechaza con su mensaje
- * en español. La validación ocurre antes de tocar la base de datos, por eso no necesita PostgreSQL.
+ * en español. El acceso usa una invitación real, revalidada contra PostgreSQL.
  */
 class ValidacionContactoWebTest extends TestCase
 {
+    use ConEnlaceEgresado, FabricaSeguimiento, UsaBaseDeDatos;
+
     private const URL = '/seguimiento-egresado/egresado/contacto';
 
     private function enviar(array $cambios)
     {
         $datos = array_merge(['correo_personal' => 'persona@correo.com', 'celular_whatsapp' => '+51 900 000 001', 'telefono_fijo' => '044 123456', 'direccion' => 'Av. Ficticia 123'], $cambios);
 
-        return $this->withSession(['seguimiento-egresado.identidad' => [
-            'perfil' => Perfil::Egresado->value, 'egresado_id' => 1, 'invitacion_id' => 1, 'vence_en' => now()->addDay()->toIso8601String(),
-        ]])->from(self::URL)->post(self::URL, $datos);
+        $this->entrarPorInvitacion($this->crearInvitacion($this->crearEgresado(), null));
+
+        return $this->from(self::URL)->post(self::URL, $datos);
     }
 
     #[DataProvider('valoresInvalidos')]

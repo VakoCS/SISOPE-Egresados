@@ -27,6 +27,19 @@ class EncuestaSeguimientoRequest extends FormRequest
 
     public const MAX_FORMACIONES = 10;
 
+    public const INGRESOS = [
+        'HASTA_1500' => 'Hasta S/ 1.500', '1501_3000' => 'De S/ 1.501 a S/ 3.000',
+        '3001_5000' => 'De S/ 3.001 a S/ 5.000', 'MAS_5000' => 'Más de S/ 5.000', 'NO_DECLARA' => 'Prefiero no responder',
+    ];
+
+    public const INSERCION = [
+        'ANTES_EGRESAR' => 'Ya trabajaba antes de egresar', 'HASTA_3_MESES' => 'Hasta 3 meses',
+        '4_6_MESES' => 'De 4 a 6 meses', '7_12_MESES' => 'De 7 a 12 meses',
+        'MAS_12_MESES' => 'Más de 12 meses', 'NO_APLICA' => 'No aplica / no recuerdo',
+    ];
+
+    public const PERTINENCIA = [1 => 'Nada pertinente', 2 => 'Poco pertinente', 3 => 'Moderadamente pertinente', 4 => 'Pertinente', 5 => 'Muy pertinente'];
+
     public function rules(): array
     {
         return self::reglasPara($this->all());
@@ -70,8 +83,12 @@ class EncuestaSeguimientoRequest extends FormRequest
             'contacto_jefe' => $autoriza
                 ? ['required', 'string', 'max:180', Formatos::correoOCelular()]
                 : ['exclude'],
+            'cargo_actual' => $soloSiTrabaja(['nullable', 'string', 'min:2', 'max:120', Formatos::texto()]),
+            'rango_ingreso' => $soloSiTrabaja(['nullable', Rule::in(array_keys(self::INGRESOS))]),
+            'tiempo_insercion' => $soloSiTrabaja(['nullable', Rule::in(array_keys(self::INSERCION))]),
 
             'satisfaccion' => ['required', 'string', ...$catalogo('cat_nivel_satisfaccion')],
+            'pertinencia_curricular' => ['nullable', 'integer', 'between:1,5'],
             'comentario' => ['nullable', 'string', 'max:1000', Formatos::texto()],
 
             'brechas' => ['nullable', 'array'],
@@ -82,6 +99,8 @@ class EncuestaSeguimientoRequest extends FormRequest
             'detalle_fortaleza_otra' => $fortalezaOtra ? ['required', 'string', 'min:2', 'max:180', Formatos::texto()] : ['exclude'],
 
             'formaciones' => ['nullable', 'array', 'max:'.self::MAX_FORMACIONES],
+            'id_egresado' => ['prohibited'], 'egresado_id' => ['prohibited'], 'id_campania' => ['prohibited'],
+            'id_invitacion' => ['prohibited'], 'id_medicion' => ['prohibited'], 'fecha_respuesta' => ['prohibited'],
         ];
 
         foreach (array_keys((array) ($d['formaciones'] ?? [])) as $i) {
@@ -120,7 +139,11 @@ class EncuestaSeguimientoRequest extends FormRequest
 
     public function messages(): array
     {
-        return self::mensajesBase();
+        return self::mensajesBase() + [
+            'pertinencia_curricular.between' => 'Selecciona una pertinencia curricular entre 1 y 5.',
+            'pertinencia_curricular.integer' => 'Selecciona una pertinencia curricular válida.',
+            'prohibited' => 'El campo :attribute no se puede cambiar desde esta encuesta.',
+        ];
     }
 
     public function attributes(): array
@@ -141,6 +164,10 @@ class EncuestaSeguimientoRequest extends FormRequest
             'region_empleo' => 'ubicación del empleo en el Perú',
             'autoriza_contacto_empresa' => 'autorización de contacto a la empresa',
             'contacto_jefe' => 'contacto del jefe directo',
+            'cargo_actual' => 'cargo actual',
+            'rango_ingreso' => 'rango de ingreso mensual',
+            'tiempo_insercion' => 'tiempo de inserción laboral',
+            'pertinencia_curricular' => 'pertinencia curricular',
             'satisfaccion' => 'satisfacción',
             'comentario' => 'comentario',
             'brechas' => 'habilidades a reforzar',

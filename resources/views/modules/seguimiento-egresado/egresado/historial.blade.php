@@ -35,7 +35,7 @@
                   @if ($c['id_medicion'])
                     <a href="{{ route('seguimiento-egresado.egresado.historial.detalle', $c['id_medicion']) }}">Ver respuesta</a>
                   @elseif ($c['estado_respuesta'] === 'PENDIENTE')
-                    <a href="{{ route('seguimiento-egresado.egresado.encuesta') }}">Responder</a>
+                    <a href="{{ route('seguimiento-egresado.egresado.encuesta', ['invitacion' => $c['id_invitacion']]) }}">Responder</a>
                   @else
                     —
                   @endif
@@ -55,11 +55,12 @@
     @if (count($contactos))
       <div class="sg-table-wrap">
         <table class="sg-table sgs-wide">
-          <thead><tr><th scope="col">Correo personal</th><th scope="col">Celular</th><th scope="col">Dirección</th><th scope="col">Vigente desde</th><th scope="col">Hasta</th><th scope="col">Origen</th></tr></thead>
+          <thead><tr><th scope="col">Correo personal</th><th scope="col">Celular</th><th scope="col">Dirección</th><th scope="col">Preferencias</th><th scope="col">Vigente desde</th><th scope="col">Hasta</th><th scope="col">Origen</th></tr></thead>
           <tbody>
             @foreach ($contactos as $v)
               <tr>
                 <td>{{ $v['correo_personal'] }}</td><td>{{ $v['celular_whatsapp'] }}</td><td>{{ $v['direccion'] ?? '—' }}</td>
+                <td>{{ \App\Modules\SeguimientoEgresado\Requests\ContactoRequest::CANALES[$v['canal_preferido']] ?? $v['canal_preferido'] }} · {{ \App\Modules\SeguimientoEgresado\Requests\ContactoRequest::HORARIOS[$v['horario_contacto_preferido']] ?? $v['horario_contacto_preferido'] }} · {{ $v['autoriza_mensajes'] ? 'Autoriza mensajes' : 'No autoriza mensajes' }}</td>
                 <td>{{ $fechaHora($v['vigente_desde']) }}</td>
                 <td>{{ $v['vigente_hasta'] ? $fechaHora($v['vigente_hasta']) : 'Vigente' }}</td>
                 <td>{{ $v['origen_registro'] === 'SECRETARIA' ? 'Secretaría' : 'Formulario' }}</td>

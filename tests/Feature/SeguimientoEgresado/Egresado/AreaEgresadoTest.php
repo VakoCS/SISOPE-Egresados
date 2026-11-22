@@ -6,6 +6,7 @@ use App\Modules\SeguimientoEgresado\Support\Accesos\Perfil;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\SeguimientoEgresado\ComoPersonal;
+use Tests\Support\SeguimientoEgresado\ConEnlaceEgresado;
 use Tests\Support\SeguimientoEgresado\FabricaSeguimiento;
 use Tests\Support\SeguimientoEgresado\UsaEsquemaPostgres;
 use Tests\TestCase;
@@ -16,7 +17,7 @@ use Tests\TestCase;
  */
 class AreaEgresadoTest extends TestCase
 {
-    use ComoPersonal, FabricaSeguimiento, UsaEsquemaPostgres;
+    use ComoPersonal, ConEnlaceEgresado, FabricaSeguimiento, UsaEsquemaPostgres;
 
     private const BASE = '/seguimiento-egresado/egresado';
 
@@ -34,12 +35,9 @@ class AreaEgresadoTest extends TestCase
 
     private function comoEgresado(int $egresadoId, ?int $invitacionId): static
     {
-        return $this->withSession(['seguimiento-egresado.identidad' => [
-            'perfil' => Perfil::Egresado->value,
-            'egresado_id' => $egresadoId,
-            'invitacion_id' => $invitacionId,
-            'vence_en' => now()->addDay()->toIso8601String(),
-        ]]);
+        $this->entrarPorInvitacion($invitacionId ?? $this->crearInvitacion($egresadoId, null));
+
+        return $this;
     }
 
     /** @return array{0:int,1:int} egresado e invitación de seguimiento pendiente */
@@ -225,7 +223,7 @@ class AreaEgresadoTest extends TestCase
         [, $invitacionAjena] = $this->conEncuestaPendiente();
         $yo = $this->crearEgresado();
 
-        $this->comoEgresado($yo, $invitacionAjena)->post(self::BASE.'/encuesta', $this->respuesta())->assertRedirect(route('seguimiento-egresado.egresado.inicio'));
+        $this->comoEgresado($yo, null)->post(self::BASE.'/encuesta', $this->respuesta() + ['invitacion' => $invitacionAjena])->assertRedirect(route('seguimiento-egresado.egresado.inicio'));
 
         $this->assertSame(0, DB::table('seguimiento_egresado.medicion_laboral')->count());
     }

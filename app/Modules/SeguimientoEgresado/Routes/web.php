@@ -17,6 +17,7 @@ use App\Modules\SeguimientoEgresado\Controllers\PromocionController;
 use App\Modules\SeguimientoEgresado\Controllers\ReportesController;
 use App\Modules\SeguimientoEgresado\Controllers\RespuestasController;
 use App\Modules\SeguimientoEgresado\Controllers\SeguimientoEgresadoController;
+use App\Modules\SeguimientoEgresado\Middleware\ProtegeEnlaceEgresado;
 use App\Modules\SeguimientoEgresado\Middleware\RequiereCapacidad;
 use App\Modules\SeguimientoEgresado\Middleware\SincronizaEstadoDeCampanias;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
@@ -119,14 +120,14 @@ Route::prefix('seguimiento-egresado')
         });
 
         // Entrada del egresado por el enlace personal de su invitación (sin cuenta ni contraseña).
-        Route::middleware('throttle:30,1')->group(function () {
+        Route::middleware(['throttle:30,1', ProtegeEnlaceEgresado::class])->group(function () {
             Route::get('/acceso', [AccesoController::class, 'sinEnlace'])->name('acceso');
             Route::get('/acceso/{token}', [AccesoController::class, 'abrirEnlace'])->where('token', '[A-Za-z0-9_-]{16,128}')->name('acceso.enlace');
         });
 
         // Área del egresado: contacto, encuesta de seguimiento e historial propios. El expediente sale siempre de la
         // sesión del enlace, nunca de la URL.
-        Route::prefix('egresado')->name('egresado.')->group(function () use ($egresado) {
+        Route::prefix('egresado')->name('egresado.')->middleware(ProtegeEnlaceEgresado::class)->group(function () use ($egresado) {
             Route::get('/', [ExpedienteController::class, 'inicio'])->middleware($egresado('expediente.propio'))->name('inicio');
 
             Route::get('/contacto', [ContactoController::class, 'editar'])->middleware($egresado('expediente.propio'))->name('contacto');
