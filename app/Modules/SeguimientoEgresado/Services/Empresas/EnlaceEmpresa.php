@@ -31,8 +31,19 @@ final class EnlaceEmpresa
      */
     public function generar(array $datos): array
     {
+        return DB::transaction(fn () => $this->generarBloqueado($datos));
+    }
+
+    private function generarBloqueado(array $datos): array
+    {
+        if (! in_array($datos['contexto'] ?? null, ['MERCADO', 'DESEMPENO'], true)) {
+            throw new EnlaceNoGenerable('El tipo de encuesta no es válido.', 'contexto');
+        }
+        if (isset($datos['dias_validez']) && ($datos['dias_validez'] < 1 || $datos['dias_validez'] > self::DIAS_MAXIMOS)) {
+            throw new EnlaceNoGenerable('La validez debe estar entre 1 y 90 días.', 'dias_validez');
+        }
         $ahora = CarbonImmutable::now();
-        $campania = DB::table('seguimiento_egresado.campania_seguimiento')->where('id', $datos['id_campania'])->first();
+        $campania = DB::table('seguimiento_egresado.campania_seguimiento')->where('id', $datos['id_campania'])->lockForUpdate()->first();
 
         if ($campania === null) {
             throw new EnlaceNoGenerable('La campaña seleccionada no existe.');
@@ -40,13 +51,24 @@ final class EnlaceEmpresa
         if (! in_array($campania->tipo, ['EMPRESAS', 'MIXTA'], true)) {
             throw new EnlaceNoGenerable('La campaña seleccionada no está dirigida a empresas.');
         }
-        if ($campania->estado !== 'ABIERTA' || self::finDeCampania($campania)->lessThanOrEqualTo($ahora)) {
+        if ($campania->estado !== 'ABIERTA' || ! self::dentroDeFechas($campania, $ahora)) {
             throw new EnlaceNoGenerable('La campaña debe estar abierta y dentro de sus fechas.');
         }
 
         $egresadoId = null;
         if ($datos['contexto'] === 'DESEMPENO') {
             $egresadoId = $this->egresadoEvaluable($datos['id_egresado'] ?? null, (int) $campania->id);
+        }
+
+        $empresa = null;
+        if (! empty($datos['id_empresa'])) {
+            $empresa = DB::table('comun.empresa')->where('id_empresa', $datos['id_empresa'])->where('estado', 'Activo')->first();
+            if ($empresa === null) {
+                throw new EnlaceNoGenerable('Selecciona una empresa activa del catálogo.', 'id_empresa');
+            }
+            if ($egresadoId !== null && ! app(GestionDeEmpresas::class)->vinculados((int) $empresa->id_empresa)->contains('id_egresado', $egresadoId)) {
+                throw new EnlaceNoGenerable('El egresado no está vinculado a esta empresa.', 'id_egresado');
+            }
         }
 
         // Sin días indicados, el enlace vale hasta el cierre de la campaña (igual que las invitaciones a egresados).
@@ -63,9 +85,11 @@ final class EnlaceEmpresa
         $id = DB::table('seguimiento_egresado.invitacion_empresa')->insertGetId([
             'id_campania' => $campania->id,
             'id_egresado' => $egresadoId,
+            'id_empresa' => $empresa?->id_empresa,
+            'version_formulario' => 2,
             'contexto' => $datos['contexto'],
-            'organizacion' => self::textoOpcional($datos['organizacion'] ?? null) ?? $empleador['organizacion'],
-            'contacto_empresa' => self::textoOpcional($datos['contacto_empresa'] ?? null) ?? $empleador['contacto'],
+            'organizacion' => $empresa?->razon_social ?? self::textoOpcional($datos['organizacion'] ?? null) ?? $empleador['organizacion'],
+            'contacto_empresa' => $empresa?->correo ?? self::textoOpcional($datos['contacto_empresa'] ?? null) ?? $empleador['contacto'],
             'token_hash' => self::hashDe($token),
             'expira_en' => $expira->format('Y-m-d H:i:sP'),
             'enviado_en' => null,
@@ -87,7 +111,12 @@ final class EnlaceEmpresa
      */
     public function renovar(int $invitacionId, bool $confirmaReemplazo = false): array
     {
-        $invitacion = DB::table('seguimiento_egresado.invitacion_empresa')->where('id', $invitacionId)->first();
+        return DB::transaction(fn () => $this->renovarBloqueado($invitacionId, $confirmaReemplazo));
+    }
+
+    private function renovarBloqueado(int $invitacionId, bool $confirmaReemplazo): array
+    {
+        $invitacion = DB::table('seguimiento_egresado.invitacion_empresa')->where('id', $invitacionId)->lockForUpdate()->first();
 
         if ($invitacion === null || ! in_array($invitacion->estado, ['PENDIENTE', 'EXPIRADA'], true)) {
             throw new EnlaceNoGenerable('Esta invitación ya no admite un enlace nuevo.');
@@ -101,7 +130,7 @@ final class EnlaceEmpresa
             throw new EnlaceNoGenerable('Otra persona ya copió este enlace. Revisa la invitación antes de reemplazarlo.');
         }
 
-        if ($campania->estado !== 'ABIERTA' || self::finDeCampania($campania)->lessThanOrEqualTo($ahora)) {
+        if ($campania === null || $campania->estado !== 'ABIERTA' || ! self::dentroDeFechas($campania, $ahora)) {
             throw new EnlaceNoGenerable('La campaña debe estar abierta y dentro de sus fechas.');
         }
 
@@ -161,6 +190,9 @@ final class EnlaceEmpresa
         if ($invitacion->estado_campania !== 'ABIERTA') {
             return MotivoEnlace::CampaniaCerrada;
         }
+        if (! self::dentroDeFechas((object) ['fecha_inicio' => $invitacion->fecha_inicio, 'fecha_fin' => $invitacion->fecha_fin], $ahora)) {
+            return MotivoEnlace::CampaniaCerrada;
+        }
 
         return MotivoEnlace::Vigente;
     }
@@ -178,8 +210,8 @@ final class EnlaceEmpresa
             ->leftJoin('seguimiento_egresado.egresado as e', 'e.id', '=', 'ie.id_egresado')
             ->where('ie.token_hash', $hash)
             ->select(
-                'ie.id', 'ie.id_campania', 'ie.id_egresado', 'ie.contexto', 'ie.organizacion', 'ie.estado', 'ie.expira_en', 'ie.respondido_en',
-                'c.nombre as campania', 'c.estado as estado_campania',
+                'ie.id', 'ie.id_campania', 'ie.id_egresado', 'ie.id_empresa', 'ie.version_formulario', 'ie.contexto', 'ie.organizacion', 'ie.estado', 'ie.expira_en', 'ie.respondido_en',
+                'c.nombre as campania', 'c.estado as estado_campania', 'c.fecha_inicio', 'c.fecha_fin',
                 'e.nombres as egresado_nombres', 'e.apellido_paterno as egresado_paterno', 'e.apellido_materno as egresado_materno', 'e.programa as egresado_programa',
             )
             ->first();
@@ -239,6 +271,12 @@ final class EnlaceEmpresa
     private static function finDeCampania(object $campania): CarbonImmutable
     {
         return CarbonImmutable::parse($campania->fecha_fin, FiltroIndicadores::ZONA)->endOfDay();
+    }
+
+    private static function dentroDeFechas(object $campania, CarbonImmutable $ahora): bool
+    {
+        return CarbonImmutable::parse($campania->fecha_inicio, FiltroIndicadores::ZONA)->startOfDay()->lessThanOrEqualTo($ahora)
+            && self::finDeCampania($campania)->greaterThan($ahora);
     }
 
     private static function textoOpcional(?string $valor): ?string

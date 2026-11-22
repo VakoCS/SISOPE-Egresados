@@ -2,6 +2,7 @@
 
 namespace App\Modules\SeguimientoEgresado\Services\Empresas;
 
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 final class GestionDeEmpresas
 {
     public const ACTIVO = 'Activo';
+
     public const INACTIVO = 'Inactivo';
 
     /** Máximo de egresados ofrecidos para vincular en una sola consulta. */
@@ -56,7 +58,7 @@ final class GestionDeEmpresas
             'em.id_empresa', 'em.ruc', 'em.razon_social', 'em.nombre_comercial', 'em.id_sector', 'em.estado',
             's.nombre as sector_nombre',
             // El conteo va en los mismos campos que se piden: `get()` ignora las columnas si ya hay un select previo.
-            DB::raw("(SELECT COUNT(*) FROM comun.contacto_empresa ce WHERE ce.id_empresa = em.id_empresa AND ce.estado = 'Activo') as vinculados"),
+            DB::raw("(SELECT COUNT(*) FROM comun.contacto_empresa ce JOIN core.persona p ON p.id_persona = ce.id_persona JOIN seguimiento_egresado.egresado e ON e.tipo_documento = p.tipo_documento AND e.numero_documento = p.numero_documento WHERE ce.id_empresa = em.id_empresa AND ce.estado = 'Activo') as vinculados"),
         ]);
     }
 
@@ -88,6 +90,20 @@ final class GestionDeEmpresas
      * mayúsculas de minúsculas, porque dos veces la misma razón social con otro RUC también confunde.
      */
     public function guardar(array $datos, ?int $id = null): int
+    {
+        try {
+            return DB::transaction(function () use ($datos, $id) {
+                // Serializa las altas/ediciones de este catálogo para comprobar duplicados sin carreras.
+                DB::select('SELECT pg_advisory_xact_lock(20261122, 400)');
+
+                return $this->guardarBloqueado($datos, $id);
+            });
+        } catch (UniqueConstraintViolationException) {
+            throw new GestionNoValida('Ya hay una empresa registrada con ese RUC.', 'ruc');
+        }
+    }
+
+    private function guardarBloqueado(array $datos, ?int $id): int
     {
         $ruc = trim((string) ($datos['ruc'] ?? ''));
         $razonSocial = trim((string) ($datos['razon_social'] ?? ''));
@@ -136,6 +152,15 @@ final class GestionDeEmpresas
      * @return bool true si el vínculo es nuevo, false si ya estaba activo
      */
     public function vincular(int $empresaId, int $egresadoId): bool
+    {
+        return DB::transaction(function () use ($empresaId, $egresadoId) {
+            DB::table('seguimiento_egresado.egresado')->where('id', $egresadoId)->lockForUpdate()->first();
+
+            return $this->vincularBloqueado($empresaId, $egresadoId);
+        });
+    }
+
+    private function vincularBloqueado(int $empresaId, int $egresadoId): bool
     {
         if (! DB::table('comun.empresa')->where('id_empresa', $empresaId)->exists()) {
             throw new GestionNoValida('La empresa indicada no existe.', 'empresa');
@@ -284,5 +309,33 @@ final class GestionDeEmpresas
         $limpio = trim(preg_replace('/\s+/u', ' ', $valor) ?? '');
 
         return $limpio === '' ? null : $limpio;
+    }
+
+    public function invitaciones(int $empresaId): Collection
+    {
+        $filas = DB::table('seguimiento_egresado.invitacion_empresa as i')
+            ->join('seguimiento_egresado.campania_seguimiento as c', 'c.id', '=', 'i.id_campania')
+            ->leftJoin('seguimiento_egresado.egresado as e', 'e.id', '=', 'i.id_egresado')
+            ->leftJoin('seguimiento_egresado.respuesta_empresa as r', 'r.id_invitacion_empresa', '=', 'i.id')
+            ->leftJoin('seguimiento_egresado.cat_nivel_satisfaccion as sf', 'sf.id', '=', 'r.id_satisfaccion_formacion')
+            ->where('i.id_empresa', $empresaId)->orderByDesc('i.id')
+            ->get(['i.id', 'i.contexto', 'i.estado', 'i.expira_en', 'i.respondido_en', 'c.nombre as campania', 'e.nombres', 'e.apellido_paterno',
+                'r.id as id_respuesta', 'r.demanda_profesionales', 'sf.nombre as satisfaccion_formacion',
+                ...array_map(fn ($campo) => 'r.'.$campo, array_keys(CuestionarioEmpresa::DIMENSIONES)),
+            ]);
+        $ids = $filas->pluck('id_respuesta')->filter();
+        $sectores = DB::table('seguimiento_egresado.respuesta_empresa_sector as rs')
+            ->join('seguimiento_egresado.cat_sector_empresa as s', 's.id', '=', 'rs.id_sector')
+            ->whereIn('rs.id_respuesta', $ids)->orderBy('s.nombre')->get(['rs.id_respuesta', 's.nombre'])->groupBy('id_respuesta');
+        $perfiles = DB::table('seguimiento_egresado.respuesta_empresa_perfil')
+            ->whereIn('id_respuesta', $ids)->orderBy('codigo')->get(['id_respuesta', 'codigo'])->groupBy('id_respuesta');
+
+        return $filas->map(function ($fila) use ($sectores, $perfiles) {
+            $fila->sectores_contratacion = $sectores->get($fila->id_respuesta, collect())->pluck('nombre')->implode(', ');
+            $fila->perfiles_requeridos = $perfiles->get($fila->id_respuesta, collect())->pluck('codigo')
+                ->map(fn ($codigo) => CuestionarioEmpresa::PERFILES[$codigo])->implode(', ');
+
+            return $fila;
+        });
     }
 }

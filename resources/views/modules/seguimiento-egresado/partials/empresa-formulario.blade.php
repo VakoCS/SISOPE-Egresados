@@ -96,7 +96,7 @@
           </div>
           <div class="sg-field">
             <label class="sg-label" for="{{ $idDialogo }}-correo">Correo de contacto</label>
-            <input class="sg-input" id="{{ $idDialogo }}-correo" name="correo" type="email" maxlength="190"
+            <input class="sg-input" id="{{ $idDialogo }}-correo" name="correo" type="email" maxlength="180"
                    placeholder="contacto@empresa.com" autocomplete="off" value="{{ $valor('correo') }}">
             @error('correo')<p class="sg-error-formulario" role="alert">{{ $message }}</p>@enderror
           </div>

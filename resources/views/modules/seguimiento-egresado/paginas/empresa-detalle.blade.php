@@ -108,8 +108,17 @@
     <h2 class="sg-section-title" id="sg-empresa-asociar">Asociar un egresado</h2>
     <p class="sg-help" style="margin-bottom: 10px;">Escribe el nombre o el documento para filtrar la lista; solo aparecen los egresados que todavía no están vinculados.</p>
 
+    <form method="GET" action="{{ route('seguimiento-egresado.empresa.detalle', $empresa->id_empresa) }}" class="sg-emp-vincular">
+      <div class="sg-field">
+        <label class="sg-label" for="egresado_q">Buscar en todo el padrón</label>
+        <input class="sg-input" id="egresado_q" name="egresado_q" type="search" value="{{ $busquedaEgresado }}" placeholder="Apellido, nombre o documento">
+      </div>
+      <button class="sg-button sg-button-secondary" type="submit">Buscar egresado</button>
+    </form>
+    <p class="sg-help">Se muestran hasta 300 coincidencias. Usa la búsqueda para encontrar otros egresados.</p>
+
     @if ($disponibles->isEmpty())
-      <p class="sg-help">Ya están vinculados todos los egresados del padrón.</p>
+      <p class="sg-help">No hay egresados disponibles con esta búsqueda.</p>
     @else
       <form method="POST" action="{{ route('seguimiento-egresado.empresa.vincular', $empresa->id_empresa) }}" class="sg-emp-vincular">
         @csrf
@@ -133,6 +142,8 @@
     @endif
   </section>
 @endif
+
+@include('modules.seguimiento-egresado.empresas.encuestas-empleador')
 
 @include('modules.seguimiento-egresado.partials.empresa-formulario', [
   'empresa' => $empresa,

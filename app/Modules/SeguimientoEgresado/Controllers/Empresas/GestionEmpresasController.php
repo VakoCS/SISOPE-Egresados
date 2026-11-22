@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\SeguimientoEgresado\Services\Accesos\SesionAcceso;
 use App\Modules\SeguimientoEgresado\Services\Empresas\GestionDeEmpresas;
 use App\Modules\SeguimientoEgresado\Services\Empresas\GestionNoValida;
+use App\Modules\SeguimientoEgresado\Services\Empresas\ResultadosEmpresas;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -60,7 +61,10 @@ class GestionEmpresasController extends Controller
         return response()->view('modules.seguimiento-egresado.paginas.empresa-detalle', [
             'empresa' => $empresa,
             'vinculados' => $gestion->vinculados($id),
-            'disponibles' => $gestion->disponibles($id),
+            'disponibles' => $gestion->disponibles($id, $request->string('egresado_q')->toString()),
+            'busquedaEgresado' => $request->string('egresado_q')->toString(),
+            'campaniasEmpresa' => app(ResultadosEmpresas::class)->campaniasDeEmpresas(),
+            'invitacionesEmpresa' => $gestion->invitaciones($id),
             'sectores' => $gestion->sectores(),
             'estados' => GestionDeEmpresas::estados(),
             'puedeGestionar' => $this->puedeGestionar($request),
@@ -126,7 +130,7 @@ class GestionEmpresasController extends Controller
             'id_sector' => ['nullable', 'integer', 'exists:'.config('database.default').'.comun.sector_economico,id_sector'],
             'direccion' => ['nullable', 'string', 'max:500'],
             'telefono' => ['nullable', 'string', 'max:30'],
-            'correo' => ['nullable', 'email:rfc', 'max:190'],
+            'correo' => ['nullable', 'email:rfc', 'max:180'],
             'pagina_web' => ['nullable', 'string', 'max:190'],
             'estado' => ['required', 'in:'.implode(',', GestionDeEmpresas::estados())],
         ], [

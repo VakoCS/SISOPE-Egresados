@@ -165,6 +165,8 @@ class ContrasteVistasPostgresTest extends TestCase
 
         $this->post(route('seguimiento-egresado.encuesta-empresa.responder', ['token' => $enlace['token']]), [
             'organizacion' => 'Organización Ficticia', 'sector' => 'SOFTWARE_TI', 'demandas' => ['CLOUD'], 'brechas' => ['INGLES'],
+            'sectores_contratacion' => ['SOFTWARE_TI'], 'perfiles_requeridos' => ['DESARROLLO'],
+            'demanda_profesionales' => 'UNO_CINCO', 'satisfaccion_formacion' => 'SATISFECHO',
         ])->assertRedirect(route('seguimiento-egresado.encuesta-empresa.gracias'));
 
         $this->assertDatabaseHas('seguimiento_egresado.invitacion_empresa', ['id' => $enlace['id'], 'estado' => 'COMPLETADA']);

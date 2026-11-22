@@ -14,8 +14,8 @@ use Tests\TestCase;
  */
 class GestionEmpresasTest extends TestCase
 {
-    use UsaBaseDeDatos;
     use FabricaEmpresasIndicadores;
+    use UsaBaseDeDatos;
 
     protected function setUp(): void
     {
@@ -151,8 +151,7 @@ class GestionEmpresasTest extends TestCase
         // El vinculado sale de la lista de opciones; el que sigue libre queda a mano para elegirlo.
         $this->get(route('seguimiento-egresado.empresa.detalle', $empresa))
             ->assertOk()
-            ->assertSee('<option value="'.$libre.'">', false)
-            ->assertDontSee('<option value="'.$vinculado.'">', false)
+            ->assertViewHas('disponibles', fn ($filas) => $filas->contains('id', $libre) && ! $filas->contains('id', $vinculado))
             ->assertSee('Libre, Persona');
     }
 
@@ -183,6 +182,48 @@ class GestionEmpresasTest extends TestCase
     public function test_una_empresa_inexistente_responde_404(): void
     {
         $this->get(route('seguimiento-egresado.empresa.detalle', 999999))->assertNotFound();
+    }
+
+    public function test_el_correo_respeta_el_limite_real_de_postgres(): void
+    {
+        $correo = implode('.', array_fill(0, 4, str_repeat('a', 42))).'@empresa.test';
+        $this->assertGreaterThan(180, strlen($correo));
+        $this->post(route('seguimiento-egresado.empresa.guardar'), $this->datos(['correo' => $correo]))->assertSessionHasErrors('correo');
+    }
+
+    public function test_la_busqueda_del_padron_encuentra_egresados_fuera_de_los_primeros_300(): void
+    {
+        $this->post(route('seguimiento-egresado.empresa.guardar'), $this->datos());
+        $empresa = (int) DB::table('comun.empresa')->value('id_empresa');
+        $cohorte = $this->cohorte();
+        for ($i = 0; $i < 301; $i++) {
+            $this->egresado($cohorte, estado: null, cambios: ['apellido_paterno' => 'Anterior']);
+        }
+        $ultimo = $this->egresado($cohorte, estado: null, cambios: ['apellido_paterno' => 'ZetaEncontrable']);
+        $this->get(route('seguimiento-egresado.empresa.detalle', [$empresa, 'egresado_q' => 'ZetaEncontrable']))
+            ->assertOk()->assertViewHas('disponibles', fn ($filas) => $filas->count() === 1 && (int) $filas->first()->id === $ultimo);
+    }
+
+    public function test_el_conteo_no_confunde_contactos_externos_con_egresados(): void
+    {
+        $this->post(route('seguimiento-egresado.empresa.guardar'), $this->datos());
+        $empresa = (int) DB::table('comun.empresa')->value('id_empresa');
+        $persona = DB::table('core.persona')->insertGetId(['tipo_documento' => 'DNI', 'numero_documento' => '78800001', 'nombres' => 'Contacto externo', 'apellido_paterno' => 'Empresa'], 'id_persona');
+        DB::table('comun.contacto_empresa')->insert(['id_empresa' => $empresa, 'id_persona' => $persona, 'estado' => 'Activo']);
+        $this->get(route('seguimiento-egresado.empresa'))->assertOk()
+            ->assertViewHas('empresas', fn ($filas) => (int) $filas->first()->vinculados === 0);
+    }
+
+    public function test_director_no_puede_vincular_ni_desvincular_y_anonimo_no_consulta(): void
+    {
+        $this->post(route('seguimiento-egresado.empresa.guardar'), $this->datos());
+        $empresa = (int) DB::table('comun.empresa')->value('id_empresa');
+        $egresado = $this->egresado($this->cohorte());
+        $this->entrarComo('DIRECTOR');
+        $this->post(route('seguimiento-egresado.empresa.vincular', $empresa), ['id_egresado' => $egresado])->assertForbidden();
+        $this->post(route('seguimiento-egresado.empresa.desvincular', [$empresa, $egresado]))->assertForbidden();
+        auth()->logout();
+        $this->get(route('seguimiento-egresado.empresa'))->assertRedirect(route('login'));
     }
 
     /** @return array<string, mixed> */
