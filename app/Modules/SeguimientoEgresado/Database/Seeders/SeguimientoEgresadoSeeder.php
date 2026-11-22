@@ -25,6 +25,8 @@ class SeguimientoEgresadoSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
+            // Catálogo compartido que necesita la gestión de empleadores (comun.sector_economico).
+            $this->call(SectoresEconomicosSeeder::class);
             $this->personal();
             $this->call([DatosPruebaSeeder::class, EmpresasIndicadoresDemoSeeder::class, EgresadosDemoSeeder::class, PadronSinteticoSeeder::class]);
         });

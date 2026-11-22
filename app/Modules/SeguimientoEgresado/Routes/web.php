@@ -8,6 +8,7 @@ use App\Modules\SeguimientoEgresado\Controllers\Egresado\ExpedienteController;
 use App\Modules\SeguimientoEgresado\Controllers\Egresado\HistorialController;
 use App\Modules\SeguimientoEgresado\Controllers\Empresas\EmpresasController;
 use App\Modules\SeguimientoEgresado\Controllers\Empresas\EncuestaEmpresaController;
+use App\Modules\SeguimientoEgresado\Controllers\Empresas\GestionEmpresasController;
 use App\Modules\SeguimientoEgresado\Controllers\Indicadores\IndicadoresController;
 use App\Modules\SeguimientoEgresado\Controllers\InstitucionalController;
 use App\Modules\SeguimientoEgresado\Controllers\Invitaciones\ContactoInicialController;
@@ -94,6 +95,16 @@ Route::prefix('seguimiento-egresado')
         Route::post('/empresas/enlaces/lote', [EmpresasController::class, 'generarLote'])->middleware($interna('campanias.administrar'))->name('empresas.enlaces.lote');
         Route::post('/empresas/enlaces/{id}/renovar', [EmpresasController::class, 'renovarEnlace'])->whereNumber('id')->middleware($interna('campanias.administrar'))->name('empresas.enlaces.renovar');
         Route::post('/empresas/enlaces/{id}/enviado', [EmpresasController::class, 'marcarEnviado'])->whereNumber('id')->middleware($interna('campanias.administrar'))->name('empresas.enlaces.enviado');
+
+        // Gestión de empleadores: catálogo de empresas (comun.empresa) y sus vínculos con los egresados.
+        Route::prefix('empresas/gestion')->group(function () use ($interna) {
+            Route::get('/', [GestionEmpresasController::class, 'index'])->middleware($interna('empresas.resultados'))->name('empresa');
+            Route::post('/', [GestionEmpresasController::class, 'store'])->middleware($interna('campanias.administrar'))->name('empresa.guardar');
+            Route::get('/{id}', [GestionEmpresasController::class, 'detalle'])->whereNumber('id')->middleware($interna('empresas.resultados'))->name('empresa.detalle');
+            Route::put('/{id}', [GestionEmpresasController::class, 'update'])->whereNumber('id')->middleware($interna('campanias.administrar'))->name('empresa.actualizar');
+            Route::post('/{id}/vincular', [GestionEmpresasController::class, 'vincular'])->whereNumber('id')->middleware($interna('campanias.administrar'))->name('empresa.vincular');
+            Route::post('/{id}/desvincular/{egresado}', [GestionEmpresasController::class, 'desvincular'])->whereNumber('id')->whereNumber('egresado')->middleware($interna('campanias.administrar'))->name('empresa.desvincular');
+        });
         Route::get('/indicadores', [IndicadoresController::class, 'index'])->middleware($interna('indicadores.consultar'))->name('indicadores');
         Route::get('/indicadores/exportar', [IndicadoresController::class, 'exportar'])->middleware($interna('reportes.exportar'))->name('indicadores.exportar');
 
