@@ -134,6 +134,10 @@
       </fieldset>
   @endforeach
 
+  @if ((int) $invitacion->version_formulario >= 2)
+    @include('modules.seguimiento-egresado.empresas.cuestionario')
+  @endif
+
   @if ($esDesempeno)
     <fieldset class="sg-enc-seccion" data-sg-paso data-sg-unico="satisfaccion" data-sg-mensaje="Selecciona tu nivel de satisfacción." tabindex="-1" @error('satisfaccion') aria-invalid="true" aria-describedby="satisfaccion-error" @enderror>
       <legend>¿Qué tan satisfecho estás con su desempeño?</legend>
@@ -259,7 +263,14 @@
       limitar();
     });
 
-    formulario.addEventListener('submit', () => {
+    formulario.addEventListener('submit', (evento) => {
+      const incompleto = pasos.findIndex((paso) => faltante(paso));
+      if (incompleto >= 0) {
+        evento.preventDefault();
+        mostrar(incompleto);
+        validar();
+        return;
+      }
       enviar.disabled = true;
       enviar.textContent = 'Enviando…';
     });

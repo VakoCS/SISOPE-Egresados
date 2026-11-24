@@ -11,7 +11,7 @@ Route::get('/', function () {
     $perfil = \App\Modules\SeguimientoEgresado\Support\Accesos\Perfil::desdeRolesDelPortal(auth()->user()->getRoleNames());
 
     if ($perfil) {
-        return redirect()->to(\App\Modules\SeguimientoEgresado\Support\Accesos\RutaInicial::para($perfil));
+        return redirect()->route(\App\Modules\SeguimientoEgresado\Support\Accesos\RutaInicial::para($perfil));
     }
 
     return redirect()->route('login');
@@ -25,7 +25,7 @@ Route::get('/dashboard', function () {
     $perfil = \App\Modules\SeguimientoEgresado\Support\Accesos\Perfil::desdeRolesDelPortal(auth()->user()->getRoleNames());
 
     if ($perfil) {
-        return redirect()->to(\App\Modules\SeguimientoEgresado\Support\Accesos\RutaInicial::para($perfil));
+        return redirect()->route(\App\Modules\SeguimientoEgresado\Support\Accesos\RutaInicial::para($perfil));
     }
 
     return redirect()->route('login');

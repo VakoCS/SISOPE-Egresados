@@ -30,10 +30,20 @@ final class ContactoService
             'direccion' => self::opcional($datos['direccion'] ?? null),
         ];
 
-        return DB::transaction(function () use ($egresadoId, $nuevo, $origen, $invitacionId) {
+        return DB::transaction(function () use ($egresadoId, $nuevo, $datos, $origen, $invitacionId) {
             $ahora = CarbonImmutable::now();
+            // También serializa el primer contacto, cuando todavía no hay una versión para bloquear.
+            DB::table('seguimiento_egresado.egresado')->where('id', $egresadoId)->lockForUpdate()->first();
             $vigente = DB::table('seguimiento_egresado.contacto_egresado')
                 ->where('id_egresado', $egresadoId)->whereNull('vigente_hasta')->lockForUpdate()->first();
+
+            $nuevo += [
+                'canal_preferido' => $datos['canal_preferido'] ?? $vigente?->canal_preferido ?? 'CORREO_INSTITUCIONAL',
+                'horario_contacto_preferido' => $datos['horario_contacto_preferido'] ?? $vigente?->horario_contacto_preferido ?? 'SIN_PREFERENCIA',
+                'autoriza_mensajes' => array_key_exists('autoriza_mensajes', $datos)
+                    ? filter_var($datos['autoriza_mensajes'], FILTER_VALIDATE_BOOLEAN)
+                    : ($vigente?->autoriza_mensajes ?? true),
+            ];
 
             if ($vigente !== null && $this->esIgual($vigente, $nuevo)) {
                 $this->completarInvitacion($invitacionId, $egresadoId, $ahora);

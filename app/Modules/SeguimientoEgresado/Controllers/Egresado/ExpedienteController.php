@@ -33,7 +33,9 @@ final class ExpedienteController extends EgresadoController
             ->join('seguimiento_egresado.campania_seguimiento as c', 'c.id', '=', 'i.id_campania')
             ->where('i.id_egresado', $identidad->egresadoId)
             ->where('i.proposito', 'SEGUIMIENTO')->where('i.estado', 'PENDIENTE')
-            ->where('i.expira_en', '>', now())->where('c.estado', 'ABIERTA')
+            ->where('i.expira_en', '>', now()->format('Y-m-d H:i:sP'))->where('c.estado', 'ABIERTA')
+            ->where('c.fecha_inicio', '<=', now('America/Lima')->toDateString())
+            ->where('c.fecha_fin', '>=', now('America/Lima')->toDateString())
             ->orderBy('c.fecha_fin')->orderBy('i.id')
             ->get(['i.id', 'i.expira_en', 'c.nombre as campania', 'c.periodo']);
 

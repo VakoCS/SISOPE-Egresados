@@ -39,6 +39,7 @@
         'valor' => old('direccion', $contacto['direccion'] ?? ''),
         'attrs' => ['minlength' => 5, 'maxlength' => 250, 'autocomplete' => 'street-address', 'placeholder' => 'Av. / Calle y número'],
       ])
+      @include('modules.seguimiento-egresado.egresado._preferencias-contacto', ['prefijo' => ''])
     </div>
     <div class="sgs-navbtns">
       <a class="sg-button sg-button-secondary" href="{{ route('seguimiento-egresado.egresado.inicio') }}">Cancelar</a>

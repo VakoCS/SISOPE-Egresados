@@ -36,6 +36,7 @@ final class EncuestaService
                     'id_medicion' => $idMedicion,
                     'id_nivel_satisfaccion' => $this->idDe('cat_nivel_satisfaccion', $d['satisfaccion']),
                     'comentario' => self::opcional($d['comentario'] ?? null),
+                    'pertinencia_curricular' => $d['pertinencia_curricular'] ?? null,
                 ]);
 
                 $this->guardarHabilidades($idMedicion, 'BRECHA', (array) ($d['brechas'] ?? []), $d['detalle_brecha_otra'] ?? null);
@@ -63,7 +64,7 @@ final class EncuestaService
             ->join('seguimiento_egresado.campania_seguimiento as c', 'c.id', '=', 'i.id_campania')
             ->where('i.id', $invitacionId)->where('i.id_egresado', $egresadoId)->where('i.proposito', 'SEGUIMIENTO')
             ->lockForUpdate()
-            ->first(['i.estado', 'i.expira_en', 'c.estado as estado_campania']);
+            ->first(['i.estado', 'i.expira_en', 'c.estado as estado_campania', 'c.fecha_inicio', 'c.fecha_fin']);
 
         $motivo = match (true) {
             $invitacion === null => MotivoInvitacion::NoEncontrada,
@@ -72,6 +73,8 @@ final class EncuestaService
             $invitacion->estado === 'EXPIRADA' => MotivoInvitacion::Expirada,
             CarbonImmutable::parse($invitacion->expira_en)->lessThanOrEqualTo($ahora) => MotivoInvitacion::Vencida,
             $invitacion->estado_campania !== 'ABIERTA' => MotivoInvitacion::CampaniaCerrada,
+            CarbonImmutable::parse($invitacion->fecha_inicio, 'America/Lima')->startOfDay()->greaterThan($ahora) => MotivoInvitacion::CampaniaCerrada,
+            CarbonImmutable::parse($invitacion->fecha_fin, 'America/Lima')->endOfDay()->lessThanOrEqualTo($ahora) => MotivoInvitacion::CampaniaCerrada,
             default => null,
         };
 
@@ -107,6 +110,9 @@ final class EncuestaService
             'otros_idiomas' => self::opcional($d['otros_idiomas'] ?? null),
             'autoriza_contacto_empresa' => $trabaja ? filter_var($d['autoriza_contacto_empresa'], FILTER_VALIDATE_BOOLEAN) : null,
             'contacto_jefe' => $empleo('contacto_jefe'),
+            'cargo_actual' => $empleo('cargo_actual'),
+            'rango_ingreso' => $empleo('rango_ingreso'),
+            'tiempo_insercion' => $empleo('tiempo_insercion'),
         ];
     }
 

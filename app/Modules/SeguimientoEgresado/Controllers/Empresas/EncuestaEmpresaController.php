@@ -49,7 +49,7 @@ class EncuestaEmpresaController extends Controller
             'brecha_otra' => in_array(RespuestaEmpresaService::CODIGO_OTRA, (array) $request->input('brechas', []), true) ? '1' : '0',
         ]);
 
-        $datos = $request->validate(RespuestaEmpresaService::reglas($invitacion->contexto), RespuestaEmpresaService::mensajes());
+        $datos = $request->validate(RespuestaEmpresaService::reglas($invitacion->contexto, (int) $invitacion->version_formulario), RespuestaEmpresaService::mensajes());
 
         try {
             $respuestas->registrar($token, $datos);

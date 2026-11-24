@@ -6,6 +6,7 @@ use App\Modules\SeguimientoEgresado\Requests\EncuestaSeguimientoRequest;
 use App\Modules\SeguimientoEgresado\Services\Egresado\ContactoService;
 use App\Modules\SeguimientoEgresado\Services\Egresado\EncuestaService;
 use App\Modules\SeguimientoEgresado\Services\Egresado\HistorialService;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Tests\Support\SeguimientoEgresado\FabricaSeguimiento;
@@ -51,7 +52,10 @@ class HistorialServiceTest extends TestCase
         $this->crearInvitacion($egresado, $media);
         $this->crearInvitacion($egresado, $actual);
 
-        $this->responder($egresado, $invAntigua);
+        // La medición histórica se respondió mientras su campaña estaba dentro de fechas.
+        $this->travelTo(CarbonImmutable::parse('2024-11-15 12:00:00', 'America/Lima'));
+        $this->responder($egresado, $invAntigua, ['formaciones' => []]);
+        $this->travelBack();
         DB::table('seguimiento_egresado.campania_seguimiento')->whereIn('id', [$antigua, $media])->update(['estado' => 'CERRADA']);
 
         $filas = $this->historial->campanias($egresado);

@@ -18,6 +18,7 @@ class SatisfaccionEgresado extends ModuleModel
         'id_medicion',
         'id_nivel_satisfaccion',
         'comentario',
+        'pertinencia_curricular',
     ];
 
     public function medicion()

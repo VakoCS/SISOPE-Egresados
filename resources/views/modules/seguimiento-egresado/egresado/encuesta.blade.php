@@ -32,6 +32,7 @@
         @include('modules.seguimiento-egresado.egresado._campo', ['id' => 'c-cel', 'nombre' => 'contacto[celular_whatsapp]', 'etiqueta' => 'Celular / WhatsApp', 'tipo' => 'tel', 'requerido' => true, 'valor' => $contactoActual('celular_whatsapp'), 'attrs' => ['maxlength' => 20, 'autocomplete' => 'tel', 'inputmode' => 'tel', 'placeholder' => '+51 900 000 000', 'data-valida' => 'celular']])
         @include('modules.seguimiento-egresado.egresado._campo', ['id' => 'c-fijo', 'nombre' => 'contacto[telefono_fijo]', 'etiqueta' => 'Teléfono fijo (opcional)', 'tipo' => 'tel', 'valor' => $contactoActual('telefono_fijo'), 'attrs' => ['maxlength' => 20, 'inputmode' => 'tel', 'placeholder' => '044 000000', 'data-valida' => 'telefono']])
         @include('modules.seguimiento-egresado.egresado._campo', ['id' => 'c-dir', 'nombre' => 'contacto[direccion]', 'etiqueta' => 'Dirección (opcional)', 'valor' => $contactoActual('direccion'), 'attrs' => ['minlength' => 5, 'maxlength' => 250, 'autocomplete' => 'street-address']])
+        @include('modules.seguimiento-egresado.egresado._preferencias-contacto', ['prefijo' => 'contacto'])
       </div>
     </section>
 
@@ -55,6 +56,9 @@
           @include('modules.seguimiento-egresado.egresado._lista', ['id' => 'modalidad_trabajo', 'nombre' => 'modalidad_trabajo', 'etiqueta' => 'Modalidad de trabajo', 'requerido' => true, 'opciones' => $cat['modalidades'], 'seleccion' => old('modalidad_trabajo')])
           @include('modules.seguimiento-egresado.egresado._lista', ['id' => 'sector_laboral', 'nombre' => 'sector_laboral', 'etiqueta' => 'Sector de la organización', 'requerido' => true, 'opciones' => $cat['sectores'], 'seleccion' => old('sector_laboral')])
           @include('modules.seguimiento-egresado.egresado._campo', ['id' => 'nombre_empleador_cliente', 'nombre' => 'nombre_empleador_cliente', 'etiqueta' => 'Empleador o cliente', 'requerido' => true, 'valor' => old('nombre_empleador_cliente'), 'attrs' => ['minlength' => 2, 'maxlength' => 160, 'autocomplete' => 'off']])
+          @include('modules.seguimiento-egresado.egresado._campo', ['id' => 'cargo_actual', 'nombre' => 'cargo_actual', 'etiqueta' => 'Cargo actual (opcional)', 'valor' => old('cargo_actual'), 'attrs' => ['minlength' => 2, 'maxlength' => 120]])
+          @include('modules.seguimiento-egresado.egresado._lista', ['id' => 'rango_ingreso', 'nombre' => 'rango_ingreso', 'etiqueta' => 'Ingreso mensual aproximado en soles (opcional)', 'opciones' => \App\Modules\SeguimientoEgresado\Requests\EncuestaSeguimientoRequest::INGRESOS, 'seleccion' => old('rango_ingreso')])
+          @include('modules.seguimiento-egresado.egresado._lista', ['id' => 'tiempo_insercion', 'nombre' => 'tiempo_insercion', 'etiqueta' => 'Tiempo desde el egreso hasta el primer empleo (opcional)', 'opciones' => \App\Modules\SeguimientoEgresado\Requests\EncuestaSeguimientoRequest::INSERCION, 'seleccion' => old('tiempo_insercion')])
           @include('modules.seguimiento-egresado.egresado._lista', ['id' => 'pais_empleador', 'nombre' => 'pais_empleador', 'etiqueta' => 'País del empleo', 'requerido' => true, 'opciones' => $cat['paises'], 'seleccion' => old('pais_empleador')])
           @include('modules.seguimiento-egresado.egresado._lista', ['id' => 'region_empleo', 'nombre' => 'region_empleo', 'etiqueta' => 'Ubicación del empleo en el Perú', 'requerido' => true, 'opciones' => $cat['regiones'], 'seleccion' => old('region_empleo'), 'contenedorId' => 'grp-region', 'oculto' => ! ($trabaja && old('pais_empleador') === 'PE')])
         </div>
@@ -81,6 +85,7 @@
     <section class="sg-panel sgs-step" aria-labelledby="s5">
       <h2 class="sg-section-title" id="s5">5. Satisfacción y habilidades</h2>
       @include('modules.seguimiento-egresado.egresado._grupo', ['nombre' => 'satisfaccion', 'etiqueta' => '¿Qué tan satisfecho estás con la formación profesional recibida en la Escuela?', 'requerido' => true, 'opciones' => $cat['satisfaccion'], 'seleccion' => old('satisfaccion'), 'clase' => 'sgs-scale'])
+      @include('modules.seguimiento-egresado.egresado._lista', ['id' => 'pertinencia_curricular', 'nombre' => 'pertinencia_curricular', 'etiqueta' => '¿Qué tan pertinente es el currículo para las necesidades profesionales actuales? (opcional)', 'opciones' => \App\Modules\SeguimientoEgresado\Requests\EncuestaSeguimientoRequest::PERTINENCIA, 'seleccion' => old('pertinencia_curricular')])
 
       @include('modules.seguimiento-egresado.egresado._grupo', ['nombre' => 'brechas', 'etiqueta' => '¿En qué habilidades consideras que la formación fue insuficiente?', 'tipo' => 'checkbox', 'opciones' => $cat['habilidades'], 'seleccion' => old('brechas', []), 'clase' => 'sgs-checks'])
       @include('modules.seguimiento-egresado.egresado._campo', ['id' => 'detalle_brecha_otra', 'nombre' => 'detalle_brecha_otra', 'etiqueta' => 'Indica cuál otra habilidad', 'requerido' => true, 'valor' => old('detalle_brecha_otra'), 'attrs' => ['minlength' => 2, 'maxlength' => 180, 'autocomplete' => 'off'], 'contenedorId' => 'grp-brecha-otra', 'oculto' => ! in_array('OTRA', (array) old('brechas', []), true)])

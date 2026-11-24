@@ -8,6 +8,7 @@ use App\Modules\SeguimientoEgresado\Controllers\Egresado\ExpedienteController;
 use App\Modules\SeguimientoEgresado\Controllers\Egresado\HistorialController;
 use App\Modules\SeguimientoEgresado\Controllers\Empresas\EmpresasController;
 use App\Modules\SeguimientoEgresado\Controllers\Empresas\EncuestaEmpresaController;
+use App\Modules\SeguimientoEgresado\Controllers\Empresas\GestionEmpresasController;
 use App\Modules\SeguimientoEgresado\Controllers\Indicadores\IndicadoresController;
 use App\Modules\SeguimientoEgresado\Controllers\InstitucionalController;
 use App\Modules\SeguimientoEgresado\Controllers\Invitaciones\ContactoInicialController;
@@ -16,6 +17,7 @@ use App\Modules\SeguimientoEgresado\Controllers\PromocionController;
 use App\Modules\SeguimientoEgresado\Controllers\ReportesController;
 use App\Modules\SeguimientoEgresado\Controllers\RespuestasController;
 use App\Modules\SeguimientoEgresado\Controllers\SeguimientoEgresadoController;
+use App\Modules\SeguimientoEgresado\Middleware\ProtegeEnlaceEgresado;
 use App\Modules\SeguimientoEgresado\Middleware\RequiereCapacidad;
 use App\Modules\SeguimientoEgresado\Middleware\SincronizaEstadoDeCampanias;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
@@ -94,6 +96,16 @@ Route::prefix('seguimiento-egresado')
         Route::post('/empresas/enlaces/lote', [EmpresasController::class, 'generarLote'])->middleware($interna('campanias.administrar'))->name('empresas.enlaces.lote');
         Route::post('/empresas/enlaces/{id}/renovar', [EmpresasController::class, 'renovarEnlace'])->whereNumber('id')->middleware($interna('campanias.administrar'))->name('empresas.enlaces.renovar');
         Route::post('/empresas/enlaces/{id}/enviado', [EmpresasController::class, 'marcarEnviado'])->whereNumber('id')->middleware($interna('campanias.administrar'))->name('empresas.enlaces.enviado');
+
+        // Gestión de empleadores: catálogo de empresas (comun.empresa) y sus vínculos con los egresados.
+        Route::prefix('empresas/gestion')->group(function () use ($interna) {
+            Route::get('/', [GestionEmpresasController::class, 'index'])->middleware($interna('empresas.resultados'))->name('empresa');
+            Route::post('/', [GestionEmpresasController::class, 'store'])->middleware($interna('campanias.administrar'))->name('empresa.guardar');
+            Route::get('/{id}', [GestionEmpresasController::class, 'detalle'])->whereNumber('id')->middleware($interna('empresas.resultados'))->name('empresa.detalle');
+            Route::put('/{id}', [GestionEmpresasController::class, 'update'])->whereNumber('id')->middleware($interna('campanias.administrar'))->name('empresa.actualizar');
+            Route::post('/{id}/vincular', [GestionEmpresasController::class, 'vincular'])->whereNumber('id')->middleware($interna('campanias.administrar'))->name('empresa.vincular');
+            Route::post('/{id}/desvincular/{egresado}', [GestionEmpresasController::class, 'desvincular'])->whereNumber('id')->whereNumber('egresado')->middleware($interna('campanias.administrar'))->name('empresa.desvincular');
+        });
         Route::get('/indicadores', [IndicadoresController::class, 'index'])->middleware($interna('indicadores.consultar'))->name('indicadores');
         Route::get('/indicadores/exportar', [IndicadoresController::class, 'exportar'])->middleware($interna('reportes.exportar'))->name('indicadores.exportar');
 
@@ -108,14 +120,14 @@ Route::prefix('seguimiento-egresado')
         });
 
         // Entrada del egresado por el enlace personal de su invitación (sin cuenta ni contraseña).
-        Route::middleware('throttle:30,1')->group(function () {
+        Route::middleware(['throttle:30,1', ProtegeEnlaceEgresado::class])->group(function () {
             Route::get('/acceso', [AccesoController::class, 'sinEnlace'])->name('acceso');
             Route::get('/acceso/{token}', [AccesoController::class, 'abrirEnlace'])->where('token', '[A-Za-z0-9_-]{16,128}')->name('acceso.enlace');
         });
 
         // Área del egresado: contacto, encuesta de seguimiento e historial propios. El expediente sale siempre de la
         // sesión del enlace, nunca de la URL.
-        Route::prefix('egresado')->name('egresado.')->group(function () use ($egresado) {
+        Route::prefix('egresado')->name('egresado.')->middleware(ProtegeEnlaceEgresado::class)->group(function () use ($egresado) {
             Route::get('/', [ExpedienteController::class, 'inicio'])->middleware($egresado('expediente.propio'))->name('inicio');
 
             Route::get('/contacto', [ContactoController::class, 'editar'])->middleware($egresado('expediente.propio'))->name('contacto');

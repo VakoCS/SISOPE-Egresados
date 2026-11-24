@@ -6,6 +6,7 @@ use App\Modules\SeguimientoEgresado\Support\Esquema;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 /**
@@ -25,11 +26,11 @@ final class RespuestaEmpresaService
      *
      * @return array<string, mixed>
      */
-    public static function reglas(string $contexto): array
+    public static function reglas(string $contexto, int $version = 1): array
     {
         $habilidad = Rule::exists(Esquema::validar('cat_habilidad'), 'codigo')->where('activo', true);
 
-        return [
+        return CuestionarioEmpresa::reglas($contexto, $version) + [
             'organizacion' => ['required', 'string', 'max:180'],
             'sector' => ['required', 'string', Rule::exists(Esquema::validar('cat_sector_empresa'), 'codigo')->where('activo', true)],
             'cargo' => ['nullable', 'string', 'max:120'],
@@ -73,6 +74,12 @@ final class RespuestaEmpresaService
             'satisfaccion.exists' => 'Selecciona un nivel de satisfacción de la lista.',
             'satisfaccion.prohibited' => 'Esta encuesta no evalúa a un egresado y no admite satisfacción.',
             'comentario.max' => 'El comentario admite hasta 1000 caracteres.',
+            'required' => 'Completa el campo :attribute.',
+            'prohibited' => 'El campo :attribute no corresponde a esta encuesta.',
+            'between' => 'Selecciona una valoración de 1 a 5 para :attribute.',
+            'exists' => 'Selecciona una opción válida para :attribute.',
+            'in' => 'Selecciona una opción válida para :attribute.',
+            'distinct' => 'No repitas opciones en :attribute.',
         ];
     }
 
@@ -94,6 +101,11 @@ final class RespuestaEmpresaService
                     throw new EnlaceRechazado($motivo);
                 }
 
+                $datos = Validator::make(array_merge($datos, [
+                    'demanda_otra' => in_array(self::CODIGO_OTRA, (array) ($datos['demandas'] ?? []), true) ? '1' : '0',
+                    'brecha_otra' => in_array(self::CODIGO_OTRA, (array) ($datos['brechas'] ?? []), true) ? '1' : '0',
+                ]), self::reglas($invitacion->contexto, (int) $invitacion->version_formulario), self::mensajes())->validate();
+
                 $satisfaccion = $invitacion->contexto === 'DESEMPENO' && $invitacion->id_egresado !== null
                     ? DB::table('seguimiento_egresado.cat_nivel_satisfaccion')->where('codigo', $datos['satisfaccion'])->value('id')
                     : null;
@@ -111,6 +123,10 @@ final class RespuestaEmpresaService
                 $this->guardarHabilidades($idRespuesta, 'DEMANDA', $datos['demandas'], $datos['detalle_demanda_otra'] ?? null);
                 $this->guardarHabilidades($idRespuesta, 'BRECHA', $datos['brechas'], $datos['detalle_brecha_otra'] ?? null);
 
+                if ((int) $invitacion->version_formulario >= 2) {
+                    $this->guardarCuestionario($idRespuesta, $invitacion->contexto, $datos);
+                }
+
                 DB::table('seguimiento_egresado.invitacion_empresa')->where('id', $invitacion->id)
                     ->update(['estado' => 'COMPLETADA', 'respondido_en' => $ahora->format('Y-m-d H:i:sP')]);
 
@@ -119,6 +135,29 @@ final class RespuestaEmpresaService
         } catch (UniqueConstraintViolationException) {
             // Dos envíos simultáneos: la restricción única de la base de datos deja pasar solo uno.
             throw new EnlaceRechazado(MotivoEnlace::Usado);
+        }
+    }
+
+    private function guardarCuestionario(int $id, string $contexto, array $datos): void
+    {
+        if ($contexto === 'DESEMPENO') {
+            DB::table('seguimiento_egresado.respuesta_empresa')->where('id', $id)
+                ->update(array_intersect_key($datos, CuestionarioEmpresa::DIMENSIONES));
+
+            return;
+        }
+
+        DB::table('seguimiento_egresado.respuesta_empresa')->where('id', $id)->update([
+            'demanda_profesionales' => $datos['demanda_profesionales'],
+            'id_satisfaccion_formacion' => DB::table('seguimiento_egresado.cat_nivel_satisfaccion')
+                ->where('codigo', $datos['satisfaccion_formacion'])->value('id'),
+        ]);
+        foreach ($datos['perfiles_requeridos'] as $codigo) {
+            DB::table('seguimiento_egresado.respuesta_empresa_perfil')->insert(['id_respuesta' => $id, 'codigo' => $codigo]);
+        }
+        $sectores = DB::table('seguimiento_egresado.cat_sector_empresa')->whereIn('codigo', $datos['sectores_contratacion'])->pluck('id');
+        foreach ($sectores as $sector) {
+            DB::table('seguimiento_egresado.respuesta_empresa_sector')->insert(['id_respuesta' => $id, 'id_sector' => $sector]);
         }
     }
 

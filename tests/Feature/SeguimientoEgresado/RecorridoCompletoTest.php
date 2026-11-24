@@ -137,8 +137,14 @@ class RecorridoCompletoTest extends TestCase
         $this->flushSession();
         $base = ['organizacion' => 'Empresa Ficticia S.A.C.', 'sector' => 'SOFTWARE_TI', 'cargo' => 'Jefa de desarrollo', 'demandas' => ['BASES_DATOS', 'CLOUD'], 'brechas' => ['INGLES'], 'comentario' => 'Comentario ficticio'];
         $this->get(route('seguimiento-egresado.encuesta-empresa', ['token' => $token]))->assertOk();
-        $this->post(route('seguimiento-egresado.encuesta-empresa.responder', ['token' => $token]), $base + ['satisfaccion' => 'SATISFECHO'])->assertRedirect();
-        $this->post(route('seguimiento-egresado.encuesta-empresa.responder', ['token' => $tokenMercado]), $base)->assertRedirect();
+        $this->post(route('seguimiento-egresado.encuesta-empresa.responder', ['token' => $token]), $base + [
+            'satisfaccion' => 'SATISFECHO', 'desempeno_laboral' => 4, 'dominio_conocimientos' => 4,
+            'resolucion_problemas' => 4, 'trabajo_equipo' => 4, 'comunicacion' => 4,
+        ])->assertRedirect();
+        $this->post(route('seguimiento-egresado.encuesta-empresa.responder', ['token' => $tokenMercado]), $base + [
+            'sectores_contratacion' => ['SOFTWARE_TI'], 'perfiles_requeridos' => ['DESARROLLO'],
+            'demanda_profesionales' => 'UNO_CINCO', 'satisfaccion_formacion' => 'SATISFECHO',
+        ])->assertRedirect();
         $this->assertSame(2, DB::table('seguimiento_egresado.respuesta_empresa')->count());
         $this->assertSame(['COMPLETADA'], DB::table('seguimiento_egresado.invitacion_empresa')->distinct()->pluck('estado')->all());
 

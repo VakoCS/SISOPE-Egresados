@@ -33,6 +33,7 @@
           ['padron', 'Padrón y promociones', 'users'],
           ['campanias', 'Campañas e invitaciones', 'mail'],
           ['empresas', 'Encuesta empresarial', 'building'],
+          ['empresa', 'Empleadores', 'briefcase'],
           ['indicadores', 'Indicadores I1 a I6', 'chart'],
           ['institucional', 'Evaluación institucional', 'clipboard'],
         ] as [$route, $label, $icon])

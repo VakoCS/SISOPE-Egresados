@@ -28,6 +28,9 @@ class MedicionLaboral extends ModuleModel
         'otros_idiomas',
         'autoriza_contacto_empresa',
         'contacto_jefe',
+        'cargo_actual',
+        'rango_ingreso',
+        'tiempo_insercion',
     ];
 
     public function invitacion()

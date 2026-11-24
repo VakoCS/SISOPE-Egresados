@@ -65,6 +65,7 @@ class EmpresasController extends Controller
             'id_campania' => ['required', 'integer'],
             'contexto' => ['required', Rule::in(['MERCADO', 'DESEMPENO'])],
             'id_egresado' => ['nullable', 'integer', 'required_if:contexto,DESEMPENO'],
+            'id_empresa' => ['nullable', 'integer'],
             'organizacion' => ['nullable', 'string', 'max:180'],
             'contacto_empresa' => ['nullable', 'string', 'max:180'],
             'dias_validez' => ['nullable', 'integer', 'min:1', 'max:'.EnlaceEmpresa::DIAS_MAXIMOS],
